@@ -3,9 +3,7 @@
 // the name comes from an auto-generated default in editor.p5.org
 
 const canvasSketch = require('canvas-sketch')
-// const p5 = require('p5')
 import p5 from 'p5'
-import { File } from 'p5'
 
 var img
 
@@ -48,14 +46,20 @@ canvasSketch(({ p5, render, canvas }) => {
   let sy = 0 // Y-coordinate for the top left corner of the section
   let section = null
   let direction = null
-  // Initialize noise offsets for x and y directions
-  let noiseOffsetX = 0
-  let noiseOffsetY = 1000 // Start at a different position to ensure x and y vary differently
-  let noiseOffsetSize = 2000
+
+  let noiseOffset = p5.createVector(0, 1000, 2000)
+
   const minSectionSize = 10
   var maxSectionSize
+
+  const displayModes = {
+    MIRRORED: 'mirrored',
+    NORMAL_GRID: 'grid',
+    DELAY_GRID: 'delay'
+  }
+
   let config = {
-    oneStep: false
+    displayMode: displayModes.DELAY_GRID
   }
 
   direction = p5.createVector(0.5, 0.5)
@@ -66,11 +70,11 @@ canvasSketch(({ p5, render, canvas }) => {
   maxSectionSize = p5.width / 4 // Assuming width and height are equal, otherwise use min(width, height) / 4
 
   // Attach the drop event handler to the canvas element
-  canvas.addEventListener('drop', (event) => {
+  canvas.addEventListener('drop', event => {
     event.preventDefault()
     for (const item of event.dataTransfer.items) {
       if (item.kind === 'file') {
-      let data = URL.createObjectURL(item.getAsFile());
+        let data = URL.createObjectURL(item.getAsFile())
         p5.loadImage(data, image => {
           img = image
           render()
@@ -79,10 +83,10 @@ canvasSketch(({ p5, render, canvas }) => {
     }
   })
 
-    // Prevent the default behavior for dragover events
-    canvas.addEventListener('dragover', (event) => {
-      event.preventDefault()
-    })
+  // Prevent the default behavior for dragover events
+  canvas.addEventListener('dragover', event => {
+    event.preventDefault()
+  })
 
   p5.keyPressed = () => {
     // mode invariant
@@ -93,47 +97,60 @@ canvasSketch(({ p5, render, canvas }) => {
       })
     } else if (p5.key === 'r') {
       render()
+    } else if (p5.key === 'm') {
+      let modes = Object.values(displayModes)
+      let currentModeIndex = modes.indexOf(config.displayMode)
+      config.displayMode =
+        currentModeIndex < modes.length - 1
+          ? modes[currentModeIndex + 1]
+          : modes[0]
     }
   }
 
   // Return a renderer, which is like p5.js 'draw' function
   return ({ p5, animate, width, height }) => {
-    p5.background(220)
+    p5.background('blue')
 
     // Use Perlin noise to smoothly vary the section size
     const sectionSize = Math.floor(
-      p5.map(p5.noise(noiseOffsetSize), 0, 1, minSectionSize, maxSectionSize)
+      p5.map(p5.noise(noiseOffset.z), 0, 1, minSectionSize, maxSectionSize)
     )
     section.x = Math.floor(
-      p5.map(p5.noise(noiseOffsetX), 0, 1, 0, img.width - sectionSize)
+      p5.map(p5.noise(noiseOffset.x), 0, 1, 0, img.width - sectionSize)
     )
     section.y = Math.floor(
-      p5.map(p5.noise(noiseOffsetY), 0, 1, 0, img.height - sectionSize)
+      p5.map(p5.noise(noiseOffset.y), 0, 1, 0, img.height - sectionSize)
     )
 
-    // // Display the section of the image in a grid
-    // for (let x = 0; x < width; x += sectionSize) {
-    //   for (let y = 0; y < height; y += sectionSize) {
-    //     p5.image(
-    //       img,
-    //       x,
-    //       y,
-    //       sectionSize,
-    //       sectionSize,
-    //       section.x,
-    //       section.y,
-    //       sectionSize,
-    //       sectionSize
-    //     );
-    //   }
-    // }
+    switch (config.displayMode) {
+      case displayModes.MIRRORED:
+        mirrorGrid(width, sectionSize, height, p5, section)
+        break
+      case displayModes.NORMAL_GRID:
+        normalGrid(width, sectionSize, height, p5, section)
+        break
+      case displayModes.DELAY_GRID:
+        delayGrid(width, sectionSize, height, p5, section)
+        break
+    }
 
-    // mirrored
-    for (let x = 0; x < width; x += sectionSize * 2) {
-      // Multiply by 2 to cover half the canvas width per iteration
-      for (let y = 0; y < height; y += sectionSize * 2) {
-        // Same for height
-        // Top-left quadrant (normal)
+    // Increment noise offsets for the next frame
+    noiseOffset.x += 0.01
+    noiseOffset.y += 0.01
+    noiseOffset.z += 0.001
+  }
+
+  function delayGrid (width, sectionSize, height, p5, section) {
+    let offset = noiseOffset.copy()
+    let slowOffset = noiseOffset.copy()
+    for (let y = 0; y < height; y += sectionSize) {
+      for (let x = 0; x < width; x += sectionSize) {
+        section.x = Math.floor(
+          p5.map(p5.noise(offset.x), 0, 1, 0, img.width - sectionSize)
+        )
+        section.y = Math.floor(
+          p5.map(p5.noise(offset.y), 0, 1, 0, img.height - sectionSize)
+        )
         p5.image(
           img,
           x,
@@ -145,63 +162,100 @@ canvasSketch(({ p5, render, canvas }) => {
           sectionSize,
           sectionSize
         )
-
-        // Top-right quadrant (left-right flipped)
-        p5.push()
-        p5.translate(x + sectionSize * 2, y) // Move origin to the right edge of the current section
-        p5.scale(-1, 1) // Flip horizontally
-        p5.image(
-          img,
-          0,
-          0,
-          sectionSize,
-          sectionSize,
-          section.x,
-          section.y,
-          sectionSize,
-          sectionSize
-        )
-        p5.pop()
-
-        // Bottom-left quadrant (up-down flipped)
-        p5.push()
-        p5.translate(x, y + sectionSize * 2) // Move origin to the bottom edge of the current section
-        p5.scale(1, -1) // Flip vertically
-        p5.image(
-          img,
-          0,
-          0,
-          sectionSize,
-          sectionSize,
-          section.x,
-          section.y,
-          sectionSize,
-          sectionSize
-        )
-        p5.pop()
-
-        // Bottom-right quadrant (left-right and up-down flipped)
-        p5.push()
-        p5.translate(x + sectionSize * 2, y + sectionSize * 2) // Move origin to the bottom right corner of the current section
-        p5.scale(-1, -1) // Flip both horizontally and vertically
-        p5.image(
-          img,
-          0,
-          0,
-          sectionSize,
-          sectionSize,
-          section.x,
-          section.y,
-          sectionSize,
-          sectionSize
-        )
-        p5.pop()
+        offset.add(0.01, 0.01, 0)
       }
+      slowOffset.add(0.01, 0.01, 0)
+      offset = slowOffset.copy()
     }
-
-    // Increment noise offsets for the next frame
-    noiseOffsetX += 0.01
-    noiseOffsetY += 0.01
-    noiseOffsetSize += 0.001
   }
 }, settings)
+
+function normalGrid (width, sectionSize, height, p5, section) {
+  for (let x = 0; x < width; x += sectionSize) {
+    for (let y = 0; y < height; y += sectionSize) {
+      p5.image(
+        img,
+        x,
+        y,
+        sectionSize,
+        sectionSize,
+        section.x,
+        section.y,
+        sectionSize,
+        sectionSize
+      )
+    }
+  }
+}
+
+function mirrorGrid (width, sectionSize, height, p5, section) {
+  for (let x = 0; x < width; x += sectionSize * 2) {
+    // Multiply by 2 to cover half the canvas width per iteration
+    for (let y = 0; y < height; y += sectionSize * 2) {
+      // Same for height
+      // Top-left quadrant (normal)
+      p5.image(
+        img,
+        x,
+        y,
+        sectionSize,
+        sectionSize,
+        section.x,
+        section.y,
+        sectionSize,
+        sectionSize
+      )
+
+      // Top-right quadrant (left-right flipped)
+      p5.push()
+      p5.translate(x + sectionSize * 2, y) // Move origin to the right edge of the current section
+      p5.scale(-1, 1) // Flip horizontally
+      p5.image(
+        img,
+        0,
+        0,
+        sectionSize,
+        sectionSize,
+        section.x,
+        section.y,
+        sectionSize,
+        sectionSize
+      )
+      p5.pop()
+
+      // Bottom-left quadrant (up-down flipped)
+      p5.push()
+      p5.translate(x, y + sectionSize * 2) // Move origin to the bottom edge of the current section
+      p5.scale(1, -1) // Flip vertically
+      p5.image(
+        img,
+        0,
+        0,
+        sectionSize,
+        sectionSize,
+        section.x,
+        section.y,
+        sectionSize,
+        sectionSize
+      )
+      p5.pop()
+
+      // Bottom-right quadrant (left-right and up-down flipped)
+      p5.push()
+      p5.translate(x + sectionSize * 2, y + sectionSize * 2) // Move origin to the bottom right corner of the current section
+      p5.scale(-1, -1) // Flip both horizontally and vertically
+      p5.image(
+        img,
+        0,
+        0,
+        sectionSize,
+        sectionSize,
+        section.x,
+        section.y,
+        sectionSize,
+        sectionSize
+      )
+      p5.pop()
+    }
+  }
+}

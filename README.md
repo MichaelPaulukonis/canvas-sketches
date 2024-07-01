@@ -1,3 +1,3 @@
 # sketches using ... canvas-sketch
 
-`npx canvas-sketch-cli sketches/index.js --output=output/`
+`npx canvas-sketch-cli sketches/index.js --output=output/ --stream`
