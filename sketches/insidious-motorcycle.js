@@ -4,6 +4,7 @@
 
 const canvasSketch = require('canvas-sketch')
 import p5 from 'p5'
+import { Pane } from 'tweakpane'
 
 var img
 
@@ -28,6 +29,29 @@ let files = [
   'hindle.texture.jpg'
 ]
 
+const minSectionSize = 10
+const displayModes = {
+  MIRRORED: 'mirrored',
+  NORMAL_GRID: 'grid',
+  DELAY_GRID: 'delay'
+}
+
+let config = {
+  displayMode: displayModes.DELAY_GRID,
+  minSectionSize: 10,
+  sectionSize: 50,
+  zoom: 1.0,
+  offset: 1.0
+}
+
+const pane = new Pane()
+ 
+pane.addInput(config, 'displayMode', { options: displayModes })
+pane.addInput(config, 'minSectionSize', { min: 5, max: 50, step: 1 })
+pane.addInput(config, 'sectionSize', { min: 10, max: 500, step: 1 })
+pane.addInput(config, 'zoom', { min: 0.01, max: 10, step: 0.01 })
+pane.addInput(config, 'offset', { min: 0.01, max: 2, step: 0.01 })
+
 const preload = p5 => {
   img = p5.loadImage(root + p5.random(files))
 }
@@ -42,27 +66,11 @@ const settings = {
 }
 
 canvasSketch(({ p5, render, canvas }) => {
-  let sx = 0 // X-coordinate for the top left corner of the section
-  let sy = 0 // Y-coordinate for the top left corner of the section
   let section = null
-  let direction = null
 
   let noiseOffset = p5.createVector(0, 1000, 2000)
-
-  const minSectionSize = 10
   var maxSectionSize
 
-  const displayModes = {
-    MIRRORED: 'mirrored',
-    NORMAL_GRID: 'grid',
-    DELAY_GRID: 'delay'
-  }
-
-  let config = {
-    displayMode: displayModes.DELAY_GRID
-  }
-
-  direction = p5.createVector(0.5, 0.5)
   section = p5.createVector(
     Math.floor(img.width / 2),
     Math.floor(img.height / 2)
@@ -109,35 +117,41 @@ canvasSketch(({ p5, render, canvas }) => {
 
   // Return a renderer, which is like p5.js 'draw' function
   return ({ p5, animate, width, height }) => {
-    p5.background('blue')
+    pane.refresh()
+
+    p5.background(0)
 
     // Use Perlin noise to smoothly vary the section size
-    const sectionSize = Math.floor(
-      p5.map(p5.noise(noiseOffset.z), 0, 1, minSectionSize, maxSectionSize)
+    config.sectionSize = Math.floor(
+      p5.map(
+        p5.noise(noiseOffset.z),
+        0,
+        1,
+        config.minSectionSize,
+        maxSectionSize
+      )
     )
     section.x = Math.floor(
-      p5.map(p5.noise(noiseOffset.x), 0, 1, 0, img.width - sectionSize)
+      p5.map(p5.noise(noiseOffset.x), 0, 1, 0, img.width - config.sectionSize)
     )
     section.y = Math.floor(
-      p5.map(p5.noise(noiseOffset.y), 0, 1, 0, img.height - sectionSize)
+      p5.map(p5.noise(noiseOffset.y), 0, 1, 0, img.height - config.sectionSize)
     )
 
     switch (config.displayMode) {
       case displayModes.MIRRORED:
-        mirrorGrid(width, sectionSize, height, p5, section)
+        mirrorGrid(width, config.sectionSize, height, p5, section)
         break
       case displayModes.NORMAL_GRID:
-        normalGrid(width, sectionSize, height, p5, section)
+        normalGrid(width, config.sectionSize, height, p5, section)
         break
       case displayModes.DELAY_GRID:
-        delayGrid(width, sectionSize, height, p5, section)
+        delayGrid(width, config.sectionSize, height, p5, section)
         break
     }
 
     // Increment noise offsets for the next frame
-    noiseOffset.x += 0.01
-    noiseOffset.y += 0.01
-    noiseOffset.z += 0.001
+    noiseOffset.add(0.01, 0.01, 0.001)
   }
 
   function delayGrid (width, sectionSize, height, p5, section) {
@@ -145,11 +159,13 @@ canvasSketch(({ p5, render, canvas }) => {
     let slowOffset = noiseOffset.copy()
     for (let y = 0; y < height; y += sectionSize) {
       for (let x = 0; x < width; x += sectionSize) {
+        // how can I make this larger/smaller while still random
+        // maybe img.width - sectionSize * a thing like zoom
         section.x = Math.floor(
-          p5.map(p5.noise(offset.x), 0, 1, 0, img.width - sectionSize)
+          p5.map(p5.noise(offset.x), 0, 1, 0, (img.width - sectionSize) * config.offset)
         )
         section.y = Math.floor(
-          p5.map(p5.noise(offset.y), 0, 1, 0, img.height - sectionSize)
+          p5.map(p5.noise(offset.y), 0, 1, 0, (img.height - sectionSize) * config.offset)
         )
         p5.image(
           img,
@@ -159,8 +175,8 @@ canvasSketch(({ p5, render, canvas }) => {
           sectionSize,
           section.x,
           section.y,
-          sectionSize,
-          sectionSize
+          sectionSize / config.zoom,
+          sectionSize / config.zoom
         )
         offset.add(0.01, 0.01, 0)
       }
@@ -181,8 +197,8 @@ function normalGrid (width, sectionSize, height, p5, section) {
         sectionSize,
         section.x,
         section.y,
-        sectionSize,
-        sectionSize
+        sectionSize / config.zoom,
+        sectionSize / config.zoom
       )
     }
   }
@@ -202,8 +218,8 @@ function mirrorGrid (width, sectionSize, height, p5, section) {
         sectionSize,
         section.x,
         section.y,
-        sectionSize,
-        sectionSize
+        sectionSize / config.zoom,
+        sectionSize / config.zoom
       )
 
       // Top-right quadrant (left-right flipped)
@@ -218,8 +234,8 @@ function mirrorGrid (width, sectionSize, height, p5, section) {
         sectionSize,
         section.x,
         section.y,
-        sectionSize,
-        sectionSize
+        sectionSize / config.zoom,
+        sectionSize / config.zoom
       )
       p5.pop()
 
@@ -235,8 +251,8 @@ function mirrorGrid (width, sectionSize, height, p5, section) {
         sectionSize,
         section.x,
         section.y,
-        sectionSize,
-        sectionSize
+        sectionSize / config.zoom,
+        sectionSize / config.zoom
       )
       p5.pop()
 
@@ -252,8 +268,8 @@ function mirrorGrid (width, sectionSize, height, p5, section) {
         sectionSize,
         section.x,
         section.y,
-        sectionSize,
-        sectionSize
+        sectionSize / config.zoom,
+        sectionSize / config.zoom
       )
       p5.pop()
     }
