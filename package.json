@@ -11,6 +11,8 @@
   "license": "ISC",
   "dependencies": {
     "canvas-sketch": "^0.7.7",
+    "file-saver": "^2.0.5",
+    "jszip": "^3.10.1",
     "p5": "^1.9.4",
     "p5js": "^1.2.18",
     "tweakpane": "^3.1.10"
