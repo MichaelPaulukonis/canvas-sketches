@@ -32,3 +32,4 @@
 - edit vectors once drawn (prior to render)
 - load existing vectors onto image
 - better handling of in/out sizes
+- some semblance of a UI

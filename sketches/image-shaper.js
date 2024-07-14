@@ -18,12 +18,12 @@ const settings = {
   dimensions: [800, 800],
   prefix: 'shaper',
   // Turn on a render loop
-  animate: true
+  animate: true,
+  scaleToFit: true
 }
 
-canvasSketch(({ p5, canvas }) => {
-  // interface suggested by https://schultzschultz.com/stretch/
-
+canvasSketch(({ p5, canvas, resize, update }) => {
+  // interface suggested by https://schultzschultz.com/stretch/  
   let interfaceSW = 3
 
   const activityModes = {
@@ -32,7 +32,6 @@ canvasSketch(({ p5, canvas }) => {
   }
   let activity = activityModes.Selecting
   let croppedVectors = []
-  let context
 
   // Define a Shape class to hold a collection of Vectors
   class Shape {
@@ -108,18 +107,11 @@ canvasSketch(({ p5, canvas }) => {
 
   let selectionShape = new Shape()
 
-  function setup () {
-    pixelDensity(1)
-    context = createCanvas(400, 400)
-    context.drop(dropFile)
-    imageMode(CENTER)
-    reset()
-  }
-
-
   const reset = () => {
-    p5.resizeCanvas(imgOriginal.width, imgOriginal.height)
-    console.log(imgOriginal.width, imgOriginal.height)
+    update({
+      dimensions: [imgOriginal.width, imgOriginal.height]
+    });
+    resize()
     p5.image(imgOriginal, p5.width / 2, p5.height / 2)
     activity = activityModes.Selecting
     selectionShape = new Shape()
@@ -233,6 +225,8 @@ canvasSketch(({ p5, canvas }) => {
     saver(canvas, croppedVectors, name)
     console.log('downloaded ' + name)
   }
+
+  reset()
 
   // Return a renderer, which is like p5.js 'draw' function
   return ({ p5, time, width, height }) => {
