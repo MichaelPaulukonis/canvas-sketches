@@ -62,6 +62,7 @@ class Shape {
       if (dragAreaPressed){
         this.isDragged = true;
         this.dragOffset = new Point(ctx.mouseX, ctx.mouseY, ctx);
+        console.log(ctx.mouseX, ctx.mouseY)
         return true;
       }
     }
@@ -73,26 +74,9 @@ class Shape {
 
     if (pointDragged) {
       pointDragged.set(ctx.mouseX, ctx.mouseY);
-
-      if (this.topLeft == pointDragged) {
-        this.bottomLeft.x = pointDragged.x;
-        this.topRight.y = pointDragged.y;
-
-      } else if (this.topRight == pointDragged) {
-        this.bottomRight.x = pointDragged.x;
-        this.topLeft.y = pointDragged.y;
-
-      } else if (this.bottomRight == pointDragged) {
-        this.topRight.x = pointDragged.x;
-        this.bottomLeft.y = pointDragged.y;
-
-      } else if (this.bottomLeft == pointDragged) {
-        this.topLeft.x = pointDragged.x;
-        this.bottomRight.y = pointDragged.y;
-      }
-      // this.computePosAndSize();
     } else {
       let mover = new Point(ctx.mouseX - this.dragOffset.x, ctx.mouseY - this.dragOffset.y, ctx)
+      this.dragOffset = new Point(ctx.mouseX, ctx.mouseY, ctx);
       this.points.forEach(p => p.add(mover))
     }
   }
