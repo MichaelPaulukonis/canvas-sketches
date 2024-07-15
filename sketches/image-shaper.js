@@ -51,9 +51,22 @@ canvasSketch(({ p5, canvas, resize, update }) => {
       p5.noCursor()
       selectionShape.addVector(p5.mouseX, p5.mouseY)
     } else if (activity === activityModes.Editing) {
+      selectionShape.handleMousePressed()
       // move everything if dragging
       // if above a certain point, highlight and allow to move
       // actually, highlight s/b w/o pressed
+    }
+  }
+
+  p5.mouseDragged = () => {
+    if (activity === activityModes.Editing) {
+      selectionShape.handleMouseDragged()
+    }
+  }
+
+  p5.mouseReleased = () => {
+    if (activity === activityModes.Editing) {
+      selectionShape.handleMouseReleased()
     }
   }
 

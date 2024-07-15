@@ -11,6 +11,12 @@ class Shape {
     this.cutout = null
     this.context = ctx
     this.isOpen = true
+
+    this.dragEnabled = false;
+    this.dragArea = this;
+    this.dragOffset = undefined;
+    this.isDragged = false;
+    // this.fillColor = color(80);
   }
 
   addVector (x, y) {
@@ -42,6 +48,58 @@ class Shape {
     }
 
     return isInside
+  }
+
+  handleMousePressed(ctx = this.context){
+    const pointPressed = this.points.find(p => p.containsXY(ctx.mouseX, ctx.mouseY));
+
+    if (pointPressed){
+      pointPressed.isBeingDragged = true;
+      this.isDragged = true;
+      return true;
+    } else {
+      const dragAreaPressed = this.isPointInPolygon(ctx.mouseX, ctx.mouseY);
+      if (dragAreaPressed){
+        this.isDragged = true;
+        this.dragOffset = new Point(ctx.mouseX, ctx.mouseY, ctx);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  handleMouseDragged(ctx = this.context){
+    const pointDragged = this.points.find(p => p.isBeingDragged);
+
+    if (pointDragged) {
+      pointDragged.set(ctx.mouseX, ctx.mouseY);
+
+      if (this.topLeft == pointDragged) {
+        this.bottomLeft.x = pointDragged.x;
+        this.topRight.y = pointDragged.y;
+
+      } else if (this.topRight == pointDragged) {
+        this.bottomRight.x = pointDragged.x;
+        this.topLeft.y = pointDragged.y;
+
+      } else if (this.bottomRight == pointDragged) {
+        this.topRight.x = pointDragged.x;
+        this.bottomLeft.y = pointDragged.y;
+
+      } else if (this.bottomLeft == pointDragged) {
+        this.topLeft.x = pointDragged.x;
+        this.bottomRight.y = pointDragged.y;
+      }
+      // this.computePosAndSize();
+    } else {
+      let mover = new Point(ctx.mouseX - this.dragOffset.x, ctx.mouseY - this.dragOffset.y, ctx)
+      this.points.forEach(p => p.add(mover))
+    }
+  }
+
+  handleMouseReleased(){
+    this.points.forEach(p => { p.isBeingDragged = false; });
+    this.isDragged = false;
   }
 
   draw (mousePoint, ctx = this.context) {
