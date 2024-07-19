@@ -1,4 +1,5 @@
 // originally from https://github.com/brianhonohan/sketchbook
+import { Vector } from 'p5'
 
 export default class Point {
   constructor (x, y, ctx) {
@@ -78,6 +79,17 @@ export default class Point {
     }
   }
 
+  sub (x, y) {
+    if (x instanceof Point) {
+      this.x -= x.x || 0
+      this.y -= x.y || 0
+      return this
+    }
+    this.x -= x || 0
+    this.y -= y || 0
+    return this
+  }
+
   // NOTE: This function accepts alternate formatted params
   // (Point, heading)
   // (x, y, heading)
@@ -93,7 +105,7 @@ export default class Point {
       heading = c
     }
 
-    let diff = this.context.Vector.sub(this.pos, otherPoint)
+    let diff = Vector.sub(this.pos, otherPoint)
     diff.rotate(heading)
     this.x = otherPoint.x + diff.x
     this.y = otherPoint.y + diff.y

@@ -31,7 +31,12 @@ canvasSketch(({ p5, canvas, resize, update }) => {
     Display: 'display',
     Selecting: 'selecting'
   }
+  const editSubModes = {
+    NONE: 'none',
+    ROTATE: 'rotate'
+  }
   let activity = activityModes.Selecting
+  let subMode = editSubModes.NONE
   let croppedVectors = []
 
   let selectionShape = new Shape(p5)
@@ -52,9 +57,6 @@ canvasSketch(({ p5, canvas, resize, update }) => {
       selectionShape.addVector(p5.mouseX, p5.mouseY)
     } else if (activity === activityModes.Editing) {
       selectionShape.handleMousePressed()
-      // move everything if dragging
-      // if above a certain point, highlight and allow to move
-      // actually, highlight s/b w/o pressed
     }
   }
 
@@ -101,12 +103,25 @@ canvasSketch(({ p5, canvas, resize, update }) => {
 
   p5.keyPressed = () => {
     // mode invariant
-    if (p5.key === 'r') {
+    if (p5.key === 'R') {
       reset()
-    } else if (p5.key === 's') {
-      download()
-    } else if (p5.key === 'c') {
-      cropAndDisplay()
+    } 
+
+    switch (activity) {
+      case activityModes.Editing:
+        if (p5.key === 'c') {
+          cropAndDisplay()
+        } else if (p5.key === 'r') {
+          subMode = subMode === editSubModes.NONE
+            ? editSubModes.ROTATE
+            : editSubModes.NONE
+          selectionShape.isRotating = subMode === editSubModes.ROTATE
+        }
+        break
+      case activityModes.Display:
+        if (p5.key === 's') {
+          download()
+        } 
     }
   }
 

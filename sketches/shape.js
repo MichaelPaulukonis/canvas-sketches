@@ -1,3 +1,4 @@
+import { forEach } from 'jszip'
 import Point from './point.js'
 
 // interface suggested by https://schultzschultz.com/stretch/
@@ -12,10 +13,12 @@ class Shape {
     this.context = ctx
     this.isOpen = true
 
-    this.dragEnabled = false;
-    this.dragArea = this;
-    this.dragOffset = undefined;
-    this.isDragged = false;
+    this.dragEnabled = false
+    this.dragArea = this
+    this.dragOffset = undefined
+    this.isDragged = false
+    this.isRotating = false
+    this.center = null
     // this.fillColor = color(80);
   }
 
@@ -27,6 +30,21 @@ class Shape {
     ) {
       this.points.push(newPoint)
     }
+  }
+
+  getCenter () {
+    let x = 0
+    let y = 0
+    for (let p of this.points) {
+      // TODO: Point contains .add(), but lacks .div()
+      x += p.x
+      y += p.y
+    }
+    return new Point(
+      x / this.points.length,
+      y / this.points.length,
+      this.context
+    )
   }
 
   isPointInPolygon (px, py) {
@@ -50,40 +68,65 @@ class Shape {
     return isInside
   }
 
-  handleMousePressed(ctx = this.context){
-    const pointPressed = this.points.find(p => p.containsXY(ctx.mouseX, ctx.mouseY));
-
-    if (pointPressed){
-      pointPressed.isBeingDragged = true;
-      this.isDragged = true;
-      return true;
+  // if rotate mode, need to have it in here....
+  handleMousePressed (ctx = this.context) {
+    if (this.isRotating) {
+      this.center = this.getCenter()
+      this.dragOffset = new Point(ctx.mouseX, ctx.mouseY, ctx)
     } else {
-      const dragAreaPressed = this.isPointInPolygon(ctx.mouseX, ctx.mouseY);
-      if (dragAreaPressed){
-        this.isDragged = true;
-        this.dragOffset = new Point(ctx.mouseX, ctx.mouseY, ctx);
-        console.log(ctx.mouseX, ctx.mouseY)
-        return true;
+      const pointPressed = this.points.find(p =>
+        p.containsXY(ctx.mouseX, ctx.mouseY)
+      )
+
+      if (pointPressed) {
+        pointPressed.isBeingDragged = true
+        this.isDragged = true
+        return true
+      } else {
+        const dragAreaPressed = this.isPointInPolygon(ctx.mouseX, ctx.mouseY)
+        if (dragAreaPressed) {
+          this.isDragged = true
+          this.dragOffset = new Point(ctx.mouseX, ctx.mouseY, ctx)
+          return true
+        }
       }
     }
-    return false;
+    return false
   }
 
-  handleMouseDragged(ctx = this.context){
-    const pointDragged = this.points.find(p => p.isBeingDragged);
-
-    if (pointDragged) {
-      pointDragged.set(ctx.mouseX, ctx.mouseY);
+  handleMouseDragged (ctx = this.context) {
+    if (this.isRotating) {
+      let angle = ctx.map(
+        ctx.mouseX - this.dragOffset.x,
+        0,
+        ctx.width,
+        0,
+        ctx.TWO_PI
+      )
+      this.dragOffset.x = ctx.mouseX // we don't care about y (for now?)
+      this.points.forEach(p => p.rotateAbout(this.center, angle))
     } else {
-      let mover = new Point(ctx.mouseX - this.dragOffset.x, ctx.mouseY - this.dragOffset.y, ctx)
-      this.dragOffset = new Point(ctx.mouseX, ctx.mouseY, ctx);
-      this.points.forEach(p => p.add(mover))
+      const pointDragged = this.points.find(p => p.isBeingDragged)
+
+      if (pointDragged) {
+        pointDragged.set(ctx.mouseX, ctx.mouseY)
+      } else {
+        let mover = new Point(
+          ctx.mouseX - this.dragOffset.x,
+          ctx.mouseY - this.dragOffset.y,
+          ctx
+        )
+        this.dragOffset = new Point(ctx.mouseX, ctx.mouseY, ctx)
+        this.points.forEach(p => p.add(mover))
+      }
     }
   }
 
-  handleMouseReleased(){
-    this.points.forEach(p => { p.isBeingDragged = false; });
-    this.isDragged = false;
+  handleMouseReleased () {
+    this.points.forEach(p => {
+      p.isBeingDragged = false
+    })
+    this.isDragged = false
   }
 
   draw (mousePoint, ctx = this.context) {
