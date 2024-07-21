@@ -28,10 +28,15 @@
 
 ### roadmap
 
+- shape "library"
+  - see the thing used for .... that other thing.
+  - the one that was mostly dumb html
+- load existing vectors onto image
 - standard shapes
+  - including text <https://erraticgenerator.com/blog/p5js-texttopoints-function/>
+- bezier curves, wooo!
 - ~~rotation~~
 - ~~edit vectors once drawn (prior to render)~~
-- load existing vectors onto image
 - better handling of in/out sizes
   - semi-handled, but we should display size and allow shrinking
 - some semblance of a UI

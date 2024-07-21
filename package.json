@@ -4,7 +4,7 @@
   "description": "",
   "main": "sketch.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "deploy": "DEPLOY_ENV=GH_PAGES gh-pages -d dist"
   },
   "keywords": [],
   "author": "",
@@ -16,5 +16,8 @@
     "p5": "^1.9.4",
     "p5js": "^1.2.18",
     "tweakpane": "^3.1.10"
+  },
+  "devDependencies": {
+    "gh-pages": "^6.1.1"
   }
 }
