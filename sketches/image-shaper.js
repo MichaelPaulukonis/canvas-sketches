@@ -3,14 +3,15 @@
 const canvasSketch = require('canvas-sketch')
 var JSZip = require('jszip')
 var FileSaver = require('file-saver')
+
 import p5 from 'p5'
 import Shape from './shape.js'
 
-const root = './assets/image-shaper/'
+const root = '../assets/image-shaper/'
 var imgOriginal
 
 const preload = p5 => {
-  imgOriginal = p5.loadImage(root + 'mona.dots.small.00.png')
+  imgOriginal = p5.loadImage('../assets/image-shaper/mona.dots.small.00.png')
 }
 
 const settings = {
@@ -22,6 +23,8 @@ const settings = {
   animate: true,
   scaleToFit: true
 }
+
+
 
 canvasSketch(({ p5, canvas, resize, update }) => {
   p5.imageMode(p5.CENTER)
