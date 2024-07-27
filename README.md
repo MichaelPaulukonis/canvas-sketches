@@ -7,6 +7,7 @@
 
 `npx canvas-sketch-cli sketches/sketch.js --new --template=p5`
 
+`npx canvas-sketch-cli sketches/sketch.js --dir dist --build`
 
 ## insidious-motorcycle
 
@@ -45,3 +46,24 @@
   - contours are the p5js term for "holes" in a shape
 - shapes https://github.com/gaba5/p5.shape.js
 - https://c2js.org/examples.html?name=Chromosome3
+
+
+## nova.zombie.simulator
+
+### audio
+
+Bone Crunch by Clearwavsound -- https://freesound.org/s/524609/ -- License: Attribution 3.0
+
+wilhelm_scream.wav by Syna-Max -- https://freesound.org/s/64940/ -- License: Attribution NonCommercial 4.0
+
+Layered Gunshot 7.wav by Xenonn -- https://freesound.org/s/128297/ -- License: Creative Commons 0
+
+Carpenter meets Tron Seq (120 BPM).wav by Xinematix -- https://freesound.org/s/262442/ -- License: Attribution 4.0
+
+Loopy Thing.wav by jarethorin -- https://freesound.org/s/425941/ -- License: Creative Commons 0
+
+
+## Agressive Text Waves
+
+If I told you this bore a resemblance to XRAYSMONALISA would that mean anything to you?
+
