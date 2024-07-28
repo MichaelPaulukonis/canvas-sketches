@@ -7,13 +7,16 @@ import Player from './nova.player.js'
 import Soldier from './nova.soldier.js'
 import Zombie from './nova.zombie.js'
 import Human from './nova.human.js'
+import Doctor from './nova.doctor.js'
 
 let player
 let humans = []
 let zombies = []
 let soldiers = []
-let soldierLimit = 3
-let humanLimit = 10
+let doctors = []
+let soldierLimit = 2
+let humanLimit = 12
+let doctorLimit = 1
 let sound = {}
 
 const preload = p5 => {
@@ -61,11 +64,15 @@ canvasSketch(({ p5, play, canvas }) => {
     humans = []
     zombies = []
     soldiers = []
+    doctors = []
     for (let i = 0; i < humanLimit; i++) {
-      humans.push(new Human(p5))
+      humans.push(new Human(null, null, p5))
     }
     for (let i = 0; i < soldierLimit; i++) {
       soldiers.push(new Soldier(p5))
+    }
+    for (let i = 0; i < doctorLimit; i++) {
+      doctors.push(new Doctor(p5))
     }
     config.level++
     if (config.level % 2 === 0) {
@@ -129,7 +136,7 @@ canvasSketch(({ p5, play, canvas }) => {
     }
 
     for (let zombie of zombies) {
-      zombie.move(soldiers, humans)
+      zombie.move(soldiers, humans, doctors)
       zombie.display()
       for (let human of humans) {
         if (zombie.touches(human)) {
@@ -150,6 +157,18 @@ canvasSketch(({ p5, play, canvas }) => {
       for (let zombie of zombies) {
         if (soldier.touches(zombie)) {
           sound.gunshot.play()
+          zombies.splice(zombies.indexOf(zombie), 1)
+        }
+      }
+    }
+
+    for (let doctor of doctors) {
+      doctor.move(zombies)
+      doctor.display()
+      for (let zombie of zombies) {
+        if (doctor.touches(zombie)) {
+          // sound.gunshot.play()
+          humans.push(new Human(zombie.x, zombie.y, p5))
           zombies.splice(zombies.indexOf(zombie), 1)
         }
       }

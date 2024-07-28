@@ -1,8 +1,8 @@
 export default class Human {
-    constructor (ctx) {
+    constructor (x, y, ctx) {
       this.ctx = ctx
-      this.x = this.ctx.random(this.ctx.width)
-      this.y = this.ctx.random(this.ctx.height)
+      this.x = x || this.ctx.random(this.ctx.width)
+      this.y = y || this.ctx.random(this.ctx.height)
       this.noiseOffsetX = this.ctx.random(1000)
       this.noiseOffsetY = this.ctx.random(1000)
     }

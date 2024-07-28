@@ -8,7 +8,7 @@ export default  class Zombie {
     }
 
     // something like "world" would be a better reference....
-    move (soldiers, humans) {
+    move (soldiers, humans, doctors) {
       this.x += this.ctx.map(this.ctx.noise(this.noiseOffsetX), 0, 1, -2, 2)
       this.y += this.ctx.map(this.ctx.noise(this.noiseOffsetY), 0, 1, -2, 2)
       this.noiseOffsetX += 0.01
@@ -28,11 +28,19 @@ export default  class Zombie {
         }
       }
 
+      // Avoid doctors
+      for (let doctor of doctors) {
+        if (this.ctx.dist(this.x, this.y, doctor.x, doctor.y) < 50) {
+          this.x += (this.x - doctor.x) * 0.02
+          this.y += (this.y - doctor.y) * 0.02
+        }
+      }
+
       // move towards humans
       for (let human of humans) {
-        if (this.ctx.dist(this.x, this.y, human.x, human.y) < 200) {
-          this.x += (human.x - this.x) * 0.02
-          this.y += (human.y - this.y) * 0.02
+        if (this.ctx.dist(this.x, this.y, human.x, human.y) < 100) {
+          this.x += (human.x - this.x) * 0.04
+          this.y += (human.y - this.y) * 0.04
         }
       }
     }
