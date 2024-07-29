@@ -1,55 +1,59 @@
 // originally @ https://editor.p5js.org/MichaelPaulukonis/sketches/cg_LK7asX
 
-const canvasSketch = require('canvas-sketch')
-var JSZip = require('jszip')
-var FileSaver = require('file-saver')
+// var JSZip = require('jszip')
+// var FileSaver = require('file-saver')
 
-import p5 from 'p5'
+// import p5 from 'p5'
 import Shape from './shape.js'
 
 const root = '../assets/image-shaper/'
 var imgOriginal
 
-const preload = p5 => {
-  imgOriginal = p5.loadImage('../assets/image-shaper/mona.dots.small.00.png')
+const activityModes = {
+  Editing: 'editing',
+  Display: 'display',
+  Selecting: 'selecting'
+}
+const editSubModes = {
+  NONE: 'none',
+  ROTATE: 'rotate'
+}
+let activity = activityModes.Selecting
+let subMode = editSubModes.NONE
+let croppedVectors = []
+
+let selectionShape 
+
+export function load ({ p }) {
+  console.log('enter preload')
+  imgOriginal = p.loadImage('./assets/image-shaper/mona.dots.small.00.png')
+  console.log('preloaded')
 }
 
-const settings = {
-  // Pass the p5 instance, and preload function if necessary
-  p5: { p5, preload },
-  dimensions: [800, 800],
-  prefix: 'shaper',
-  // Turn on a render loop
-  animate: true,
-  scaleToFit: true
-}
+// const settings = {
+//   // Pass the p5 instance, and preload function if necessary
+//   p5: { p5, preload },
+//   dimensions: [800, 800],
+//   prefix: 'shaper',
+//   // Turn on a render loop
+//   animate: true,
+//   scaleToFit: true
+// }
 
-
-
-canvasSketch(({ p5, canvas, resize, update }) => {
+// canvasSketch(({ p5, canvas, resize, update }) => {
+export function setup ({ p, width, height }) {
+  let p5 = p
   p5.imageMode(p5.CENTER)
 
-  const activityModes = {
-    Editing: 'editing',
-    Display: 'display',
-    Selecting: 'selecting'
-  }
-  const editSubModes = {
-    NONE: 'none',
-    ROTATE: 'rotate'
-  }
-  let activity = activityModes.Selecting
-  let subMode = editSubModes.NONE
-  let croppedVectors = []
 
-  let selectionShape = new Shape(p5)
+  selectionShape = new Shape(p5)
 
   const reset = () => {
-    update({
-      dimensions: [imgOriginal.width, imgOriginal.height]
-    })
-    resize()
-    p5.image(imgOriginal, p5.width / 2, p5.height / 2)
+    // update({
+    //   dimensions: [imgOriginal.width, imgOriginal.height]
+    // })
+    // resize()
+    p5.image(imgOriginal, width / 2, height / 2)
     activity = activityModes.Selecting
     selectionShape = new Shape(p5)
   }
@@ -108,23 +112,24 @@ canvasSketch(({ p5, canvas, resize, update }) => {
     // mode invariant
     if (p5.key === 'R') {
       reset()
-    } 
+    }
 
     switch (activity) {
       case activityModes.Editing:
         if (p5.key === 'c') {
           cropAndDisplay()
         } else if (p5.key === 'r') {
-          subMode = subMode === editSubModes.NONE
-            ? editSubModes.ROTATE
-            : editSubModes.NONE
+          subMode =
+            subMode === editSubModes.NONE
+              ? editSubModes.ROTATE
+              : editSubModes.NONE
           selectionShape.isRotating = subMode === editSubModes.ROTATE
         }
         break
       case activityModes.Display:
         if (p5.key === 's') {
           download()
-        } 
+        }
     }
   }
 
@@ -159,7 +164,7 @@ canvasSketch(({ p5, canvas, resize, update }) => {
   }
 
   // Attach the drop event handler to the canvas element
-  canvas.addEventListener('drop', event => {
+  p5.canvas.addEventListener('drop', event => {
     event.preventDefault()
     for (const item of event.dataTransfer.items) {
       if (item.kind === 'file') {
@@ -173,7 +178,7 @@ canvasSketch(({ p5, canvas, resize, update }) => {
   })
 
   // Prevent the default behavior for dragover events
-  canvas.addEventListener('dragover', event => {
+  p5.canvas.addEventListener('dragover', event => {
     event.preventDefault()
   })
 
@@ -191,26 +196,28 @@ canvasSketch(({ p5, canvas, resize, update }) => {
 
   function download () {
     const name = `IMG_${p5.year()}-${p5.month()}-${p5.day()}_${p5.hour()}-${p5.minute()}-${p5.second()}`
-    saver(canvas, croppedVectors, name)
+    saver(p5.canvas, croppedVectors, name)
     console.log('downloaded ' + name)
   }
 
   reset()
+}
 
-  // Return a renderer, which is like p5.js 'draw' function
-  return ({ p5, time, width, height }) => {
-    p5.cursor()
-    if (activity === activityModes.Selecting) {
-      p5.image(imgOriginal, p5.width / 2, p5.height / 2)
-      selectionShape.draw({ x: p5.mouseX, y: p5.mouseY })
-    } else if (activity === activityModes.Editing) {
-      p5.image(imgOriginal, p5.width / 2, p5.height / 2)
-      selectionShape.draw({ x: p5.mouseX, y: p5.mouseY })
-      // if mouse is IN shape
-      if (selectionShape.isPointInPolygon(p5.mouseX, p5.mouseY)) {
-        p5.cursor('grab')
-      }
-      // if mouse is above a vector, highlight it
+export function draw ({ p }) {
+  let p5 = p
+  p5.cursor()
+  if (activity === activityModes.Selecting) {
+    p5.image(imgOriginal, p5.width / 2, p5.height / 2)
+    selectionShape.draw({ x: p5.mouseX, y: p5.mouseY })
+  } else if (activity === activityModes.Editing) {
+    p5.image(imgOriginal, p5.width / 2, p5.height / 2)
+    selectionShape.draw({ x: p5.mouseX, y: p5.mouseY })
+    // if mouse is IN shape
+    if (selectionShape.isPointInPolygon(p5.mouseX, p5.mouseY)) {
+      p5.cursor('grab')
     }
+    // if mouse is above a vector, highlight it
   }
-}, settings)
+}
+
+export let rendering = 'p5'

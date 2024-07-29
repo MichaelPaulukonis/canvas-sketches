@@ -9,6 +9,11 @@
 
 `npx canvas-sketch-cli sketches/sketch.js --dir dist --build`
 
+
+## trying out fragment-tools
+
+https://github.com/raphaelameaume/fragment/
+
 ## insidious-motorcycle
 
 - manually inc/dec vectors/vector amounts
