@@ -88,8 +88,10 @@ canvasSketch(({ p5, play, canvas }) => {
     config.score = 0
     resetLevel()
     play()
-    sound.thing.setVolume(1.0)
-    sound.thing.loop()
+    if (sound.thing) {
+      sound.thing.setVolume(1.0)
+      sound.thing.loop()
+    }
   }
 
   function displayScore () {

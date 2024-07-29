@@ -56,17 +56,33 @@ canvasSketch(({ p5, canvas, resize, update }) => {
   }
 
   class Word {
-    constructor (text, x, y) {
+    constructor (text, x, y, ctx) {
+      this.ctx = ctx
       this.text = text
       this.x = x
       this.y = y
-      this.xoff = p.random(1000)
-      this.yoff = p.random(1000)
+      this.xoff = this.ctx.random(1000)
+      this.yoff = this.ctx.random(1000)
     }
 
-    update (yoff, zoff) {
-      this.x = p.floor(p.noise(this.xoff, yoff, zoff) * cols)
-      this.y = p.floor(p.noise(this.yoff, yoff, zoff) * rows)
+    update (yoff, zoff, words) {
+      this.x = this.ctx.floor(this.ctx.noise(this.xoff, yoff, zoff) * cols)
+      this.y = this.ctx.floor(this.ctx.noise(this.yoff, yoff, zoff) * rows)
+
+      // avoid other words
+      for (let word of words) {
+        if (word !== this) {
+          let d = this.ctx.dist(this.x, this.y, word.x, word.y)
+          if (d < 5) {
+            // this.x = this.ctx.floor(this.ctx.random(cols))
+            // this.y = this.ctx.floor(this.ctx.random(rows))
+            this.x += Math.floor((this.x - word.x))
+            this.y += Math.floor((this.y - word.y))
+            break
+          }
+        }
+      }
+
       this.xoff += 0.01
       this.yoff += 0.01
     }
@@ -97,6 +113,7 @@ canvasSketch(({ p5, canvas, resize, update }) => {
     To the lascivious pleasing of a lute.`
 
   words = p.splitTokens(sourceText.toUpperCase(), ' ,.;\n')
+  // words = ['victorious']
 
   for (let y = 0; y < rows; y++) {
     let row = []
@@ -110,7 +127,7 @@ canvasSketch(({ p5, canvas, resize, update }) => {
   for (let i = 0; i < words.length; i++) {
     let x = p.floor(p.random(cols))
     let y = p.floor(p.random(rows))
-    wordObjects.push(new Word(words[i], x, y))
+    wordObjects.push(new Word(words[i], x, y, p))
   }
 
   // Return a renderer, which is like p5.js 'draw' function
@@ -131,7 +148,7 @@ canvasSketch(({ p5, canvas, resize, update }) => {
 
     // Update word positions and assign characters to the grid
     for (let i = 0; i < wordObjects.length; i++) {
-      wordObjects[i].update(yoff, zoff)
+      wordObjects[i].update(yoff, zoff, wordObjects)
       wordObjects[i].assignToGrid(grid)
     }
 
