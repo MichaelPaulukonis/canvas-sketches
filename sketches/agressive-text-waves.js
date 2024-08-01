@@ -20,8 +20,8 @@ canvasSketch(({ p5, canvas, resize, update }) => {
   let w, h
   let words
   let grid = []
-  let zoff = 0
   let wordObjects = []
+  let zoff = 0
   let letters =
     // "..........,,,,,:::::;;;;;'''''\"\"\"abcdefghijklmnopqrstuvwxyz".split('')
     "..........,,,,,:::::;;;;;'''''".split('')
@@ -55,6 +55,7 @@ canvasSketch(({ p5, canvas, resize, update }) => {
   }
 
   class Word {
+    // TODO: horizontal OR vertical would be nice
     constructor (text, x, y, ctx) {
       this.ctx = ctx
       this.text = text
@@ -62,9 +63,10 @@ canvasSketch(({ p5, canvas, resize, update }) => {
       this.y = y
       this.xoff = this.ctx.random(1000)
       this.yoff = this.ctx.random(1000)
+      this.zoff = this.ctx.random(1000)
     }
 
-    update (yoff, zoff, words) {
+    update (words) {
       const orig = { x: this.x, y: this.y}
       let moved = false
       // avoid other words
@@ -78,20 +80,37 @@ canvasSketch(({ p5, canvas, resize, update }) => {
         }
       }
       if (!moved) {
-        this.x = this.ctx.floor(this.ctx.noise(this.xoff) * cols)
+        // awwww, crap - rows/cols are globals sigh
+        // this.x = this.ctx.floor(this.ctx.noise(this.xoff) * cols)
+        this.x += Math.round(this.ctx.map(this.ctx.noise(this.xoff, this.zoff), 0, 1, -1, 1))
+        this.y += Math.round(this.ctx.map(this.ctx.noise(this.yoff, this.zoff), 0, 1, -1, 1))
       }
-      this.y = this.ctx.floor(this.ctx.noise(this.yoff) * rows)
+      // this.y = this.ctx.floor(this.ctx.noise(this.yoff) * rows)
 
-      if (isNaN(this.x) || isNaN(this.y)) debugger
 
-      this.xoff += 0.01
-      this.yoff += 0.01
+      // Wrap-around logic
+      if (this.x < 0) this.x = cols
+      if (this.x > cols) this.x = 0
+      if (this.y < 0) this.y = rows
+      if (this.y > rows) this.y = 0
+
+      // lower values mean more "zoomed-in" on the noise
+      // or ... it doesn't change as much
+      // which means we get long static period of rest
+      // followed by long periods of consistent motion (in the same direction)
+      // maybe we do need a 3rd value in there for some variety?
+      // I do like the long-scale herky-jerk
+      this.xoff += 0.008
+      this.yoff += 0.008
+      this.zoff += 0.04
     }
   
     // works more like a comparator
     // if no touch, returns 0
     // if overlap, returns 1|-1 depending on which way
     // this should move away from other
+    // BUT we can have multiple words jammed up ag'in one another
+    // and that leads to some jitter
     touches (other) {
       // if y is different, exit false
       if (this.y !== other.y) return 0
@@ -136,7 +155,7 @@ canvasSketch(({ p5, canvas, resize, update }) => {
     To the lascivious pleasing of a lute.`
 
   words = p.splitTokens(sourceText.toUpperCase(), ' ,.;\n')
-  // words = ['victorious']
+  // .slice(0,20)
 
   for (let y = 0; y < rows; y++) {
     let row = []
@@ -157,7 +176,7 @@ canvasSketch(({ p5, canvas, resize, update }) => {
   return ({ p5, time, width, height }) => {
     let p = p5
     p.background(255)
-    let yoff = 0
+    zoff += 0.01
 
     // Clear the grid and fill with random letters
     for (let y = 0; y < rows; y++) {
@@ -171,7 +190,7 @@ canvasSketch(({ p5, canvas, resize, update }) => {
 
     // Update word positions and assign characters to the grid
     for (let i = 0; i < wordObjects.length; i++) {
-      wordObjects[i].update(yoff, zoff, wordObjects)
+      wordObjects[i].update(wordObjects)
       wordObjects[i].assignToGrid(grid)
     }
 
@@ -182,9 +201,6 @@ canvasSketch(({ p5, canvas, resize, update }) => {
         grid[y][x].display()
         xoff += 0.1
       }
-      yoff += 0.1
     }
-
-    zoff += 0.01
   }
 }, settings)
