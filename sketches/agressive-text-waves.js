@@ -9,7 +9,7 @@ const settings = {
   // Turn on a render loop
   animate: true,
   playbackRate: 'throttle',
-  fps: 10,
+  fps: 30,
   scaleToFit: true
 }
 
@@ -25,7 +25,6 @@ canvasSketch(({ p5, canvas, resize, update }) => {
   let letters =
     // "..........,,,,,:::::;;;;;'''''\"\"\"abcdefghijklmnopqrstuvwxyz".split('')
     "..........,,,,,:::::;;;;;'''''".split('')
-
 
   w = p.width
   h = p.height
@@ -66,25 +65,49 @@ canvasSketch(({ p5, canvas, resize, update }) => {
     }
 
     update (yoff, zoff, words) {
-      this.x = this.ctx.floor(this.ctx.noise(this.xoff, yoff, zoff) * cols)
-      this.y = this.ctx.floor(this.ctx.noise(this.yoff, yoff, zoff) * rows)
-
+      const orig = { x: this.x, y: this.y}
+      let moved = false
       // avoid other words
       for (let word of words) {
         if (word !== this) {
-          let d = this.ctx.dist(this.x, this.y, word.x, word.y)
-          if (d < 5) {
-            // this.x = this.ctx.floor(this.ctx.random(cols))
-            // this.y = this.ctx.floor(this.ctx.random(rows))
-            this.x += Math.floor((this.x - word.x))
-            this.y += Math.floor((this.y - word.y))
+          this.x += this.touches(word)
+          if (this.x !== orig.x) {
+            moved = true
             break
           }
         }
       }
+      if (!moved) {
+        this.x = this.ctx.floor(this.ctx.noise(this.xoff) * cols)
+      }
+      this.y = this.ctx.floor(this.ctx.noise(this.yoff) * rows)
+
+      if (isNaN(this.x) || isNaN(this.y)) debugger
 
       this.xoff += 0.01
       this.yoff += 0.01
+    }
+  
+    // works more like a comparator
+    // if no touch, returns 0
+    // if overlap, returns 1|-1 depending on which way
+    // this should move away from other
+    touches (other) {
+      // if y is different, exit false
+      if (this.y !== other.y) return 0
+      // if word with min.x + length >= max.x then they overlap
+      // min/max here refer to the positions w/in the row, not word length
+      let { minWord, maxWord } =
+        this.x < other.x
+          ? { minWord: this, maxWord: other }
+          : { minWord: other, maxWord: this }
+      const overlap = maxWord.x - (minWord.x + minWord.text.length)
+      // if overlap is negative, they DO overlap
+      return overlap >= 0 
+        ? 0
+        : this === minWord
+          ? -1
+          : 1
     }
 
     assignToGrid (grid) {

@@ -4,3 +4,4 @@ tmp/
 wikijs/
 .DS_Store
 dist/
+.vscode/

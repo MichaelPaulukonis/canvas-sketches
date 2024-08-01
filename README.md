@@ -50,17 +50,7 @@
 
 ## nova.zombie.simulator
 
-### audio
-
-Bone Crunch by Clearwavsound -- https://freesound.org/s/524609/ -- License: Attribution 3.0
-
-wilhelm_scream.wav by Syna-Max -- https://freesound.org/s/64940/ -- License: Attribution NonCommercial 4.0
-
-Layered Gunshot 7.wav by Xenonn -- https://freesound.org/s/128297/ -- License: Creative Commons 0
-
-Carpenter meets Tron Seq (120 BPM).wav by Xinematix -- https://freesound.org/s/262442/ -- License: Attribution 4.0
-
-Loopy Thing.wav by jarethorin -- https://freesound.org/s/425941/ -- License: Creative Commons 0
+Moved on to it's own repo: <https://github.com/MichaelPaulukonis/nova-zombie-simulator.git>
 
 
 ## Agressive Text Waves

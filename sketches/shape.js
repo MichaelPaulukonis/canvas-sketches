@@ -1,4 +1,3 @@
-import { forEach } from 'jszip'
 import Point from './point.js'
 
 // interface suggested by https://schultzschultz.com/stretch/
