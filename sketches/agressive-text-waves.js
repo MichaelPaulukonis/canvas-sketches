@@ -1,5 +1,6 @@
 const canvasSketch = require('canvas-sketch')
 import p5 from 'p5'
+import { Pane } from 'tweakpane'
 
 const settings = {
   // Pass the p5 instance, and preload function if necessary
@@ -13,10 +14,33 @@ const settings = {
   scaleToFit: true
 }
 
-canvasSketch(({ p5, canvas, resize, update }) => {
+let sourceText = `Now is the winter of our discontent
+Made glorious summer by this sun of York;
+And all the clouds that lour'd upon our house
+In the deep bosom of the ocean buried.
+Now are our brows bound with victorious wreaths;
+Our bruised arms hung up for monuments;
+Our stern alarums changed to merry meetings,
+Our dreadful marches to delightful measures.
+Grim-visaged war hath smooth'd his wrinkled front;
+And now, instead of mounting barbed steeds
+To fright the souls of fearful adversaries,
+He capers nimbly in a lady's chamber
+To the lascivious pleasing of a lute.`
+
+let params = {
+  speed: 1,
+  scale: 20,
+  xOffsetSpeed: 0.11,
+  yOffsetSpeed: 0.164,
+  zOffsetSpeed: 0.001
+}
+
+const pane = new Pane()
+
+canvasSketch(({ p5, canvas, resize, update, frame }) => {
   const p = p5
   let cols, rows
-  let scl = 20
   let w, h
   let words
   let grid = []
@@ -26,18 +50,25 @@ canvasSketch(({ p5, canvas, resize, update }) => {
     // "..........,,,,,:::::;;;;;'''''\"\"\"abcdefghijklmnopqrstuvwxyz".split('')
     "..........,,,,,:::::;;;;;'''''".split('')
 
-  w = p.width
-  h = p.height
-  cols = p.floor(w / scl)
-  rows = p.floor(h / scl)
-  p.textSize(scl - 4)
+  pane.addInput(params, 'speed', { min: 1, max: 10, step: 1 })
+  pane
+    .addInput(params, 'scale', { min: 10, max: 50, step: 1 })
+    .on('change', ev => {
+      update()
+      init()
+    })
+  pane.addInput(params, 'xOffsetSpeed', { min: 0.001, max: 1, step: 0.001 })
+  pane.addInput(params, 'yOffsetSpeed', { min: 0.001, max: 1, step: 0.001 })
+  pane.addInput(params, 'zOffsetSpeed', { min: 0.001, max: 1, step: 0.001 })
+
   p.textAlign(p.CENTER, p.CENTER)
 
   class Cell {
-    constructor (x, y) {
+    constructor (x, y, scale) {
       this.x = x
       this.y = y
       this.letter = ' '
+      this.scale = scale
     }
 
     clear () {
@@ -50,12 +81,15 @@ canvasSketch(({ p5, canvas, resize, update }) => {
 
     display () {
       p.fill(0)
-      p.text(this.letter, this.x * scl + scl / 2, this.y * scl + scl / 2)
+      p.text(
+        this.letter,
+        this.x * this.scale + this.scale / 2,
+        this.y * this.scale + this.scale / 2
+      )
     }
   }
 
   class Word {
-    // TODO: horizontal OR vertical would be nice
     constructor (text, x, y, ctx) {
       this.ctx = ctx
       this.text = text
@@ -64,29 +98,116 @@ canvasSketch(({ p5, canvas, resize, update }) => {
       this.xoff = this.ctx.random(1000)
       this.yoff = this.ctx.random(1000)
       this.zoff = this.ctx.random(1000)
+      this.isVertical = Math.random() < 0.5 // 50-50 chance of being vertical
     }
 
-    update (words) {
-      const orig = { x: this.x, y: this.y}
-      let moved = false
-      // avoid other words
+    touches (other) {
+      if (this.isVertical === other.isVertical) {
+        if (this.isVertical) {
+          if (this.x !== other.x) return 0
+          let { minWord, maxWord } =
+            this.y < other.y
+              ? { minWord: this, maxWord: other }
+              : { minWord: other, maxWord: this }
+          const overlap = maxWord.y - (minWord.y + minWord.text.length)
+          return overlap >= 0 ? 0 : -overlap
+        } else {
+          if (this.y !== other.y) return 0
+          let { minWord, maxWord } =
+            this.x < other.x
+              ? { minWord: this, maxWord: other }
+              : { minWord: other, maxWord: this }
+          const overlap = maxWord.x - (minWord.x + minWord.text.length)
+          return overlap >= 0 ? 0 : -overlap
+        }
+      } else {
+        // Handle overlap between horizontal and vertical words
+        if (this.isVertical) {
+          if (
+            other.x >= this.x &&
+            other.x < this.x + 1 &&
+            this.y >= other.y &&
+            this.y < other.y + other.text.length
+          ) {
+            return 1
+          }
+        } else {
+          if (
+            this.x >= other.x &&
+            this.x < other.x + other.text.length &&
+            other.y >= this.y &&
+            other.y < this.y + 1
+          ) {
+            return 1
+          }
+        }
+        return 0
+      }
+    }
+
+    resolveOverlap (words) {
       for (let word of words) {
         if (word !== this) {
-          this.x += this.touches(word)
-          if (this.x !== orig.x) {
-            moved = true
-            break
+          let overlap = this.touches(word)
+          if (overlap > 0) {
+            let moveAmount = Math.ceil(overlap / 2)
+            if (this.isVertical === word.isVertical) {
+              let direction = this.isVertical
+                ? this.y < word.y
+                  ? -1
+                  : 1
+                : this.x < word.x
+                ? -1
+                : 1
+              if (this.isVertical) {
+                this.y += direction
+                word.y -= direction
+              } else {
+                this.x += direction
+                word.x -= direction
+              }
+            } else {
+              if (this.isVertical) {
+                this.y += 1
+              } else {
+                this.x += 1
+              }
+            }
           }
         }
       }
-      if (!moved) {
-        // awwww, crap - rows/cols are globals sigh
-        // this.x = this.ctx.floor(this.ctx.noise(this.xoff) * cols)
-        this.x += Math.round(this.ctx.map(this.ctx.noise(this.xoff, this.zoff), 0, 1, -1, 1))
-        this.y += Math.round(this.ctx.map(this.ctx.noise(this.yoff, this.zoff), 0, 1, -1, 1))
-      }
-      // this.y = this.ctx.floor(this.ctx.noise(this.yoff) * rows)
+    }
 
+    update (words) {
+      const orig = { x: this.x, y: this.y }
+      let moved = false
+      // avoid other words
+      this.resolveOverlap(words)
+      if (this.x !== orig.x || this.y !== orig.y) {
+        moved = true
+      }
+      if (!moved) {
+        if (!moved) {
+          this.x += Math.round(
+            this.ctx.map(
+              this.ctx.noise(this.xoff, this.zoff),
+              0,
+              1,
+              -params.speed,
+              params.speed
+            )
+          )
+          this.y += Math.round(
+            this.ctx.map(
+              this.ctx.noise(this.yoff, this.zoff),
+              0,
+              1,
+              -params.speed,
+              params.speed
+            )
+          )
+        }
+      }
 
       // Wrap-around logic
       if (this.x < 0) this.x = cols
@@ -94,45 +215,16 @@ canvasSketch(({ p5, canvas, resize, update }) => {
       if (this.y < 0) this.y = rows
       if (this.y > rows) this.y = 0
 
-      // lower values mean more "zoomed-in" on the noise
-      // or ... it doesn't change as much
-      // which means we get long static period of rest
-      // followed by long periods of consistent motion (in the same direction)
-      // maybe we do need a 3rd value in there for some variety?
-      // I do like the long-scale herky-jerk
-      this.xoff += 0.008
-      this.yoff += 0.008
-      this.zoff += 0.04
-    }
-  
-    // works more like a comparator
-    // if no touch, returns 0
-    // if overlap, returns 1|-1 depending on which way
-    // this should move away from other
-    // BUT we can have multiple words jammed up ag'in one another
-    // and that leads to some jitter
-    touches (other) {
-      // if y is different, exit false
-      if (this.y !== other.y) return 0
-      // if word with min.x + length >= max.x then they overlap
-      // min/max here refer to the positions w/in the row, not word length
-      let { minWord, maxWord } =
-        this.x < other.x
-          ? { minWord: this, maxWord: other }
-          : { minWord: other, maxWord: this }
-      const overlap = maxWord.x - (minWord.x + minWord.text.length)
-      // if overlap is negative, they DO overlap
-      return overlap >= 0 
-        ? 0
-        : this === minWord
-          ? -1
-          : 1
+      // Update noise offsets
+      this.xoff += params.xOffsetSpeed
+      this.yoff += params.yOffsetSpeed
+      this.zoff += params.zOffsetSpeed
     }
 
     assignToGrid (grid) {
       for (let i = 0; i < this.text.length; i++) {
-        let x = (this.x + i) % cols
-        let y = this.y % rows
+        let x = this.isVertical ? this.x : (this.x + i) % cols
+        let y = this.isVertical ? (this.y + i) % rows : this.y
         if (x >= 0 && x < cols && y >= 0 && y < rows) {
           grid[y][x].setLetter(this.text.charAt(i))
         }
@@ -140,37 +232,35 @@ canvasSketch(({ p5, canvas, resize, update }) => {
     }
   }
 
-  let sourceText = `Now is the winter of our discontent
-    Made glorious summer by this sun of York;
-    And all the clouds that lour'd upon our house
-    In the deep bosom of the ocean buried.
-    Now are our brows bound with victorious wreaths;
-    Our bruised arms hung up for monuments;
-    Our stern alarums changed to merry meetings,
-    Our dreadful marches to delightful measures.
-    Grim-visaged war hath smooth'd his wrinkled front;
-    And now, instead of mounting barbed steeds
-    To fright the souls of fearful adversaries,
-    He capers nimbly in a lady's chamber
-    To the lascivious pleasing of a lute.`
-
   words = p.splitTokens(sourceText.toUpperCase(), ' ,.;\n')
   // .slice(0,20)
 
-  for (let y = 0; y < rows; y++) {
-    let row = []
-    for (let x = 0; x < cols; x++) {
-      row.push(new Cell(x, y))
+  function init () {
+    w = p.width
+    h = p.height
+    cols = p.floor(w / params.scale)
+    rows = p.floor(h / params.scale)
+    p.textSize(params.scale - 4)
+    grid = []
+    wordObjects = []
+
+    for (let y = 0; y < rows; y++) {
+      let row = []
+      for (let x = 0; x < cols; x++) {
+        row.push(new Cell(x, y, params.scale))
+      }
+      grid.push(row)
     }
-    grid.push(row)
+
+    // Initialize wordObjects with random positions
+    for (let i = 0; i < words.length; i++) {
+      let x = p.floor(p.random(cols))
+      let y = p.floor(p.random(rows))
+      wordObjects.push(new Word(words[i], x, y, p))
+    }
   }
 
-  // Initialize wordObjects with random positions
-  for (let i = 0; i < words.length; i++) {
-    let x = p.floor(p.random(cols))
-    let y = p.floor(p.random(rows))
-    wordObjects.push(new Word(words[i], x, y, p))
-  }
+  init()
 
   // Return a renderer, which is like p5.js 'draw' function
   return ({ p5, time, width, height }) => {
