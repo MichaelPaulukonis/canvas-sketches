@@ -52,16 +52,16 @@ const pane = new Pane()
 pane.addInput(params, 'displayMode', { options: displayModes })
 pane.addInput(params, 'zoom', { min: 0.01, max: 10, step: 0.01 })
 
-let delayFolder = pane.addFolder( { title: 'Delay' })
+let delayFolder = pane.addFolder({ title: 'Delay' })
 delayFolder.addInput(params, 'delay')
 delayFolder.addInput(params, 'offset', { min: 0.01, max: 2, step: 0.01 })
 delayFolder.addInput(params, 'delayOffsetSpeed', {
-  min: -0.05,
-  max: 0.05,
+  min: -0.03,
+  max: 0.03,
   step: 0.0001
 })
 
-let sizeFolder = pane.addFolder( { title: 'Section Size' })
+let sizeFolder = pane.addFolder({ title: 'Section Size' })
 sizeFolder.addInput(params, 'changeSize')
 sizeFolder.addInput(params, 'changeSizeSpeed', {
   min: -0.03,
@@ -71,7 +71,6 @@ sizeFolder.addInput(params, 'changeSizeSpeed', {
 sizeFolder.addInput(params, 'minSectionSize', { min: 20, max: 400, step: 1 })
 sizeFolder.addInput(params, 'maxSectionSize', { min: 20, max: 800, step: 1 })
 sizeFolder.addMonitor(params, 'sectionSize', { readonly: true })
-
 
 const preload = p5 => {
   img = p5.loadImage(root + p5.random(files))
@@ -92,8 +91,8 @@ canvasSketch(({ p5, render, canvas }) => {
   let noiseOffset = p5.createVector(
     Math.random() * 1000,
     Math.random() * 1000 + 1000,
-    Math.random() * 1000 + 2000)
-
+    Math.random() * 1000 + 2000
+  )
 
   section = p5.createVector(
     Math.floor(img.width / 2),
@@ -162,11 +161,19 @@ canvasSketch(({ p5, render, canvas }) => {
       )
     }
 
-    section.x = Math.floor(
-      p5.map(p5.noise(noiseOffset.x), 0, 1, 0, img.width - params.sectionSize)
+    section.x = p5.map(
+      p5.noise(noiseOffset.x),
+      0,
+      1,
+      0,
+      img.width - params.sectionSize
     )
-    section.y = Math.floor(
-      p5.map(p5.noise(noiseOffset.y), 0, 1, 0, img.height - params.sectionSize)
+    section.y = p5.map(
+      p5.noise(noiseOffset.y),
+      0,
+      1,
+      0,
+      img.height - params.sectionSize
     )
 
     switch (params.displayMode) {
@@ -193,23 +200,20 @@ canvasSketch(({ p5, render, canvas }) => {
           let offsety =
             p5.noise(x * 0.001, y * 0.001, params.delayOffset + 1000) *
             params.offset
-          section.x = Math.floor(
-            p5.map(
-              p5.noise(offset.x),
-              0,
-              1,
-              0,
-              (img.width - sectionSize) * offsetx
-            )
+          section.x = p5.map(
+            p5.noise(offset.x),
+            0,
+            1,
+            0,
+            (img.width - sectionSize) * offsetx
           )
-          section.y = Math.floor(
-            p5.map(
-              p5.noise(offset.y),
-              0,
-              1,
-              0,
-              (img.height - sectionSize) * offsety
-            )
+
+          section.y = p5.map(
+            p5.noise(offset.y),
+            0,
+            1,
+            0,
+            (img.height - sectionSize) * offsety
           )
         }
         p5.image(
@@ -262,23 +266,19 @@ canvasSketch(({ p5, render, canvas }) => {
           let offsety =
             p5.noise(x * 0.001, y * 0.001, params.delayOffset + 1000) *
             params.offset
-          section.x = Math.floor(
-            p5.map(
-              p5.noise(offset.x),
-              0,
-              1,
-              0,
-              (img.width - sectionSize) * offsetx
-            )
+          section.x = p5.map(
+            p5.noise(offset.x),
+            0,
+            1,
+            0,
+            (img.width - sectionSize) * offsetx
           )
-          section.y = Math.floor(
-            p5.map(
-              p5.noise(offset.y),
-              0,
-              1,
-              0,
-              (img.height - sectionSize) * offsety
-            )
+          section.y = p5.map(
+            p5.noise(offset.y),
+            0,
+            1,
+            0,
+            (img.height - sectionSize) * offsety
           )
         }
 
