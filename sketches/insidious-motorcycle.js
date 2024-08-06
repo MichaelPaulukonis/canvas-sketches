@@ -49,25 +49,29 @@ let params = {
 }
 
 const pane = new Pane()
-
 pane.addInput(params, 'displayMode', { options: displayModes })
-pane.addInput(params, 'delay')
-pane.addInput(params, 'changeSize')
-pane.addInput(params, 'changeSizeSpeed', {
-  min: -0.03,
-  max: 0.03,
-  step: 0.0001
-})
-pane.addInput(params, 'minSectionSize', { min: 20, max: 400, step: 1 })
-pane.addInput(params, 'maxSectionSize', { min: 20, max: 800, step: 1 })
-pane.addMonitor(params, 'sectionSize', { readonly: true })
 pane.addInput(params, 'zoom', { min: 0.01, max: 10, step: 0.01 })
-pane.addInput(params, 'offset', { min: 0.01, max: 2, step: 0.01 })
-pane.addInput(params, 'delayOffsetSpeed', {
+
+let delayFolder = pane.addFolder( { title: 'Delay' })
+delayFolder.addInput(params, 'delay')
+delayFolder.addInput(params, 'offset', { min: 0.01, max: 2, step: 0.01 })
+delayFolder.addInput(params, 'delayOffsetSpeed', {
+  min: -0.05,
+  max: 0.05,
+  step: 0.0001
+})
+
+let sizeFolder = pane.addFolder( { title: 'Section Size' })
+sizeFolder.addInput(params, 'changeSize')
+sizeFolder.addInput(params, 'changeSizeSpeed', {
   min: -0.03,
   max: 0.03,
   step: 0.0001
 })
+sizeFolder.addInput(params, 'minSectionSize', { min: 20, max: 400, step: 1 })
+sizeFolder.addInput(params, 'maxSectionSize', { min: 20, max: 800, step: 1 })
+sizeFolder.addMonitor(params, 'sectionSize', { readonly: true })
+
 
 const preload = p5 => {
   img = p5.loadImage(root + p5.random(files))
@@ -85,7 +89,11 @@ const settings = {
 canvasSketch(({ p5, render, canvas }) => {
   let section = null
 
-  let noiseOffset = p5.createVector(0, 1000, 2000)
+  let noiseOffset = p5.createVector(
+    Math.random() * 1000,
+    Math.random() * 1000 + 1000,
+    Math.random() * 1000 + 2000)
+
 
   section = p5.createVector(
     Math.floor(img.width / 2),
@@ -131,13 +139,7 @@ canvasSketch(({ p5, render, canvas }) => {
     }
   }
 
-  params.sectionSize = p5.map(
-    p5.noise(noiseOffset.z),
-    0,
-    1,
-    params.minSectionSize,
-    params.maxSectionSize
-  )
+  params.sectionSize = p5.width / 10
 
   // Return a renderer, which is like p5.js 'draw' function
   return ({ p5, animate, width, height }) => {
@@ -177,8 +179,6 @@ canvasSketch(({ p5, render, canvas }) => {
     }
 
     // Increment noise offsets for the next frame
-    // would be nice to have z configurable in UI - can be interesting
-    // and probably others, too
     noiseOffset.add(0.001, 0.001, params.changeSizeSpeed)
   }
 
@@ -233,24 +233,6 @@ canvasSketch(({ p5, render, canvas }) => {
       }
     }
     params.delayOffset += params.delayOffsetSpeed
-  }
-
-  function plainOldGrid (width, sectionSize, height, p5, section) {
-    for (let x = 0; x < width; x += sectionSize) {
-      for (let y = 0; y < height; y += sectionSize) {
-        p5.image(
-          img,
-          x,
-          y,
-          sectionSize,
-          sectionSize,
-          section.x,
-          section.y,
-          sectionSize / params.zoom,
-          sectionSize / params.zoom
-        )
-      }
-    }
   }
 
   function mirrorGrid (width, sectionSize, height, p5, section) {
@@ -324,6 +306,9 @@ canvasSketch(({ p5, render, canvas }) => {
         p5.scale(-1, -1) // Flip both horizontally and vertically
         imagify(0, 0)
         p5.pop()
+        if (params.delay) {
+          offset.add(0.01, 0.01, 0)
+        }
       }
       slowOffset.add(0.01, 0.01, 0)
       offset = slowOffset.copy()
