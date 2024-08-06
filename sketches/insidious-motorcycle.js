@@ -31,12 +31,14 @@ let files = [
 
 const displayModes = {
   MIRRORED: 'mirrored',
-  NORMAL_GRID: 'grid',
-  DELAY_GRID: 'delay'
+  NORMAL_GRID: 'grid'
 }
 
 let params = {
-  displayMode: displayModes.DELAY_GRID,
+  displayMode: displayModes.NORMAL_GRID,
+  delay: false,
+  changeSize: false,
+  changeSizeSpeed: 0.0001,
   minSectionSize: 10,
   maxSectionSize: 0,
   sectionSize: 50,
@@ -49,6 +51,13 @@ let params = {
 const pane = new Pane()
 
 pane.addInput(params, 'displayMode', { options: displayModes })
+pane.addInput(params, 'delay')
+pane.addInput(params, 'changeSize')
+pane.addInput(params, 'changeSizeSpeed', {
+  min: -0.03,
+  max: 0.03,
+  step: 0.0001
+})
 pane.addInput(params, 'minSectionSize', { min: 20, max: 400, step: 1 })
 pane.addInput(params, 'maxSectionSize', { min: 20, max: 800, step: 1 })
 pane.addMonitor(params, 'sectionSize', { readonly: true })
@@ -122,15 +131,12 @@ canvasSketch(({ p5, render, canvas }) => {
     }
   }
 
-  // Use Perlin noise to smoothly vary the section size
-  params.sectionSize = Math.floor(
-    p5.map(
-      p5.noise(noiseOffset.z),
-      0,
-      1,
-      params.minSectionSize,
-      params.maxSectionSize
-    )
+  params.sectionSize = p5.map(
+    p5.noise(noiseOffset.z),
+    0,
+    1,
+    params.minSectionSize,
+    params.maxSectionSize
   )
 
   // Return a renderer, which is like p5.js 'draw' function
@@ -140,19 +146,20 @@ canvasSketch(({ p5, render, canvas }) => {
     p5.background(0)
 
     // // Use Perlin noise to smoothly vary the section size
-    // except there are some big jumps, sometimes.
-    // which are jarring
-    // this seems to be the culprit, because if we move it OUTSIDE
-    // of the render loop, there's not herky-jerking
-    // params.sectionSize = Math.floor(
-    //   p5.map(
-    //     p5.noise(noiseOffset.z),
-    //     0,
-    //     1,
-    //     params.minSectionSize,
-    //     params.maxSectionSize
-    //   )
-    // )
+    // do not use Math.round|floor|ceil - it leads to discontinuous jumps
+    // it may only be a single pixel, but it is added across all grid elements
+    // sub-pixel rendering seems to do the trick smoothly
+    // w/ no noticable loss of speed
+    if (params.changeSize) {
+      params.sectionSize = p5.map(
+        p5.noise(noiseOffset.z),
+        0,
+        1,
+        params.minSectionSize,
+        params.maxSectionSize
+      )
+    }
+
     section.x = Math.floor(
       p5.map(p5.noise(noiseOffset.x), 0, 1, 0, img.width - params.sectionSize)
     )
@@ -165,45 +172,46 @@ canvasSketch(({ p5, render, canvas }) => {
         mirrorGrid(width, params.sectionSize, height, p5, section)
         break
       case displayModes.NORMAL_GRID:
-        normalGrid(width, params.sectionSize, height, p5, section)
-        break
-      case displayModes.DELAY_GRID:
-        delayGrid(width, params.sectionSize, height, p5, section)
+        justAGrid(width, params.sectionSize, height, p5, section)
         break
     }
 
     // Increment noise offsets for the next frame
-    noiseOffset.add(0.001, 0.001, 0.0001)
+    // would be nice to have z configurable in UI - can be interesting
+    // and probably others, too
+    noiseOffset.add(0.001, 0.001, params.changeSizeSpeed)
   }
 
-  function delayGrid (width, sectionSize, height, p5, section) {
+  function justAGrid (width, sectionSize, height, p5, section) {
     let offset = noiseOffset.copy()
     let slowOffset = noiseOffset.copy()
     for (let y = 0; y < height; y += sectionSize) {
       for (let x = 0; x < width; x += sectionSize) {
-        let offsetx =
-          p5.noise(x * 0.001, y * 0.001, params.delayOffset) * params.offset
-        let offsety =
-          p5.noise(x * 0.001, y * 0.001, params.delayOffset + 1000) *
-          params.offset
-        section.x = Math.floor(
-          p5.map(
-            p5.noise(offset.x),
-            0,
-            1,
-            0,
-            (img.width - sectionSize) * offsetx
+        if (params.delay) {
+          let offsetx =
+            p5.noise(x * 0.001, y * 0.001, params.delayOffset) * params.offset
+          let offsety =
+            p5.noise(x * 0.001, y * 0.001, params.delayOffset + 1000) *
+            params.offset
+          section.x = Math.floor(
+            p5.map(
+              p5.noise(offset.x),
+              0,
+              1,
+              0,
+              (img.width - sectionSize) * offsetx
+            )
           )
-        )
-        section.y = Math.floor(
-          p5.map(
-            p5.noise(offset.y),
-            0,
-            1,
-            0,
-            (img.height - sectionSize) * offsety
+          section.y = Math.floor(
+            p5.map(
+              p5.noise(offset.y),
+              0,
+              1,
+              0,
+              (img.height - sectionSize) * offsety
+            )
           )
-        )
+        }
         p5.image(
           img,
           x,
@@ -215,15 +223,19 @@ canvasSketch(({ p5, render, canvas }) => {
           sectionSize / params.zoom,
           sectionSize / params.zoom
         )
-        offset.add(0.01, 0.01, 0)
+        if (params.delay) {
+          offset.add(0.01, 0.01, 0)
+        }
       }
-      slowOffset.add(0.01, 0.01, 0)
-      offset = slowOffset.copy()
+      if (params.delay) {
+        slowOffset.add(0.01, 0.01, 0)
+        offset = slowOffset.copy()
+      }
     }
     params.delayOffset += params.delayOffsetSpeed
   }
 
-  function normalGrid (width, sectionSize, height, p5, section) {
+  function plainOldGrid (width, sectionSize, height, p5, section) {
     for (let x = 0; x < width; x += sectionSize) {
       for (let y = 0; y < height; y += sectionSize) {
         p5.image(
@@ -262,29 +274,31 @@ canvasSketch(({ p5, render, canvas }) => {
     for (let x = 0; x < width; x += sectionSize * 2) {
       // Multiply by 2 to cover half the canvas width per iteration
       for (let y = 0; y < height; y += sectionSize * 2) {
-        let offsetx =
-          p5.noise(x * 0.001, y * 0.001, params.delayOffset) * params.offset
-        let offsety =
-          p5.noise(x * 0.001, y * 0.001, params.delayOffset + 1000) *
-          params.offset
-        section.x = Math.floor(
-          p5.map(
-            p5.noise(offset.x),
-            0,
-            1,
-            0,
-            (img.width - sectionSize) * offsetx
+        if (params.delay) {
+          let offsetx =
+            p5.noise(x * 0.001, y * 0.001, params.delayOffset) * params.offset
+          let offsety =
+            p5.noise(x * 0.001, y * 0.001, params.delayOffset + 1000) *
+            params.offset
+          section.x = Math.floor(
+            p5.map(
+              p5.noise(offset.x),
+              0,
+              1,
+              0,
+              (img.width - sectionSize) * offsetx
+            )
           )
-        )
-        section.y = Math.floor(
-          p5.map(
-            p5.noise(offset.y),
-            0,
-            1,
-            0,
-            (img.height - sectionSize) * offsety
+          section.y = Math.floor(
+            p5.map(
+              p5.noise(offset.y),
+              0,
+              1,
+              0,
+              (img.height - sectionSize) * offsety
+            )
           )
-        )
+        }
 
         // Same for height
         // Top-left quadrant (normal)
