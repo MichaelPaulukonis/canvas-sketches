@@ -29,6 +29,7 @@ He capers nimbly in a lady's chamber
 To the lascivious pleasing of a lute.`
 
 let params = {
+  stepMode: false,
   speed: 1,
   scale: 20,
   xOffsetSpeed: 0.11,
@@ -46,9 +47,21 @@ canvasSketch(({ p5, canvas, resize, update, frame }) => {
   let grid = []
   let wordObjects = []
   let zoff = 0
-  let letters =
+  let backgroundLetters =
     // "..........,,,,,:::::;;;;;'''''\"\"\"abcdefghijklmnopqrstuvwxyz".split('')
     "..........,,,,,:::::;;;;;'''''".split('')
+
+  const btn = pane.addButton({
+    title: 'Single Step mode',
+    label: 'off' // optional
+  })
+
+  btn.on('click', (evt) => {
+    params.stepMode = !params.stepMode
+    btn.label = params.stepMode ? 'on' : 'off'
+    // btn.controller_.view.valueElement.blur()
+    canvas.focus()
+  })
 
   pane.addInput(params, 'speed', { min: 1, max: 10, step: 1 })
   pane
@@ -263,7 +276,7 @@ canvasSketch(({ p5, canvas, resize, update, frame }) => {
   init()
 
   // Return a renderer, which is like p5.js 'draw' function
-  return ({ p5, time, width, height }) => {
+  return ({ p5, time, width, height, pause, play }) => {
     let p = p5
     p.background(255)
     zoff += 0.01
@@ -273,7 +286,7 @@ canvasSketch(({ p5, canvas, resize, update, frame }) => {
       for (let x = 0; x < cols; x++) {
         grid[y][x].clear()
         let n = p.noise(x * 0.1, y * 0.1, zoff)
-        let char = letters[p.floor(n * letters.length)]
+        let char = backgroundLetters[p.floor(n * backgroundLetters.length)]
         grid[y][x].setLetter(char)
       }
     }
@@ -292,5 +305,7 @@ canvasSketch(({ p5, canvas, resize, update, frame }) => {
         xoff += 0.1
       }
     }
+
+    params.stepMode ? pause() : play()
   }
 }, settings)
