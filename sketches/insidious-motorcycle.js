@@ -27,12 +27,14 @@ let files = [
   'polychrome.text.20240503.131611.png',
   'polychrome.text.20240509.142845.png',
   'hindle.texture.jpg'
-]
+].map(f => root + f)
 
 const displayModes = {
   MIRRORED: 'mirrored',
   NORMAL_GRID: 'grid'
 }
+
+let observe
 
 let params = {
   displayMode: displayModes.NORMAL_GRID,
@@ -45,12 +47,18 @@ let params = {
   zoom: 1.0,
   offset: 1.0,
   delayOffset: Math.random() * 1000,
-  delayOffsetSpeed: 0.001
+  delayOffsetSpeed: 0.001,
+  imageIdx: Math.floor(Math.random() * files.length),
+  showObserver: false
 }
 
 const pane = new Pane()
 pane.addInput(params, 'displayMode', { options: displayModes })
 pane.addInput(params, 'zoom', { min: 0.01, max: 10, step: 0.01 })
+pane.addInput(params, 'showObserver')
+  .on('change', ({ value }) => {
+    observe.canvas.style.display = value ? 'block' : 'none'
+  })
 
 let delayFolder = pane.addFolder({ title: 'Delay' })
 delayFolder.addInput(params, 'delay')
@@ -73,7 +81,7 @@ sizeFolder.addInput(params, 'maxSectionSize', { min: 20, max: 800, step: 1 })
 sizeFolder.addMonitor(params, 'sectionSize', { readonly: true })
 
 const preload = p5 => {
-  img = p5.loadImage(root + p5.random(files))
+  img = p5.loadImage(files[params.imageIdx])
 }
 
 const settings = {
@@ -87,6 +95,12 @@ const settings = {
 
 canvasSketch(({ p5, render, canvas }) => {
   let section = null
+
+  observe = p5.createGraphics(
+    img.width / 4,
+    img.height / 4
+  )
+  observe.noFill()
 
   let noiseOffset = p5.createVector(
     Math.random() * 1000,
@@ -121,10 +135,12 @@ canvasSketch(({ p5, render, canvas }) => {
 
   p5.keyPressed = () => {
     // mode invariant
-    if (p5.key === 'n') {
-      img = p5.loadImage(root + p5.random(files))
-      p5.loadImage(root + p5.random(files), newImage => {
+    if (p5.key === 'n' || p5.key === 'N') {
+      const direction = p5.key === 'N' ? -1 : 1
+      params.imageIdx = (params.imageIdx + direction) % files.length
+      p5.loadImage(files[params.imageIdx], newImage => {
         img = newImage
+        observe.resizeCanvas(img.width / 4, img.height / 4)
       })
     } else if (p5.key === 'r') {
       render()
@@ -175,6 +191,16 @@ canvasSketch(({ p5, render, canvas }) => {
       0,
       img.height - params.sectionSize
     )
+
+    if (params.showObserver) {
+      observe.image(img, 0, 0, img.width / 4, img.height / 4)
+      observe.rect(
+        section.x / 4,
+        section.y / 4,
+        params.sectionSize / 4 / params.zoom,
+        params.sectionSize / 4 / params.zoom
+      )
+    }
 
     switch (params.displayMode) {
       case displayModes.MIRRORED:
