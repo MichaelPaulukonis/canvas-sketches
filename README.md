@@ -21,6 +21,38 @@
 
 - https://github.com/VadimGouskov/pretty-grid
 
+### fade-in/fde-out option
+
+Built by shriking the image dow to 0, w/ a black/white bakoground
+
+FADE - diretions are in/out
+
+has a number of frames, that we track
+since we have to draw on subsequent frames
+but we can't count on global framecounts. because of pauses, help screens, or whatever
+So inc/dec (whichever we pick) on each draw loop
+
+I'm thinkning the effect draws a black background, then makes the frame smaller.
+
+By either insets/margine, or by using a scale-transform?
+
+DONE: as POC, settings and checks for on/off are not done yet
+Only implemented simple "active" which sets it to loop
+Need more of an absolute in/out
+Also, possible bug when on a low frame-count (forces a zoom???)
+
+
+### filters/FX in general
+
+what would this lookk like?
+pre/post draw of the square?
+pre/post calculation of values sent to square?
+
+I don't even know what I'd want, so I'm not going to even designs it yet
+
+literally, a decorator
+
+
 ## image-shaper
 
 - originally @ https://editor.p5js.org/MichaelPaulukonis/sketches/cg_LK7asX

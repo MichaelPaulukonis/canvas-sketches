@@ -36,9 +36,32 @@ const displayModes = {
 
 let observe
 
+const FADE_DIRECTION = {
+  IN: 1,
+  OUT: -1,
+  NONE: 0
+}
+
+// not really loop - if it's a one-off direction
+// a "onsie"
+const FADE_LOOP = {
+  IN: 1,
+  OUT: -1,
+  NONE: 0
+}
+
 let params = {
   displayMode: displayModes.NORMAL_GRID,
   delay: false,
+  fade: {
+    active: false,
+    frameLength: 20,
+    currFrame: 0,
+    direction: FADE_DIRECTION.NONE,
+    loop: FADE_LOOP.NONE,
+    fadeIn: false,
+    fadeOut: false
+  },
   changeSize: false,
   changeSizeSpeed: 0.0001,
   minSectionSize: 10,
@@ -53,32 +76,48 @@ let params = {
 }
 
 const pane = new Pane()
-pane.addInput(params, 'displayMode', { options: displayModes })
-pane.addInput(params, 'zoom', { min: 0.01, max: 10, step: 0.01 })
-pane.addInput(params, 'showObserver')
-  .on('change', ({ value }) => {
+
+function setupGUI (pane) {
+  pane.addInput(params, 'displayMode', { options: displayModes })
+  pane.addInput(params, 'zoom', { min: 0.01, max: 10, step: 0.01 })
+  pane.addInput(params, 'showObserver').on('change', ({ value }) => {
     observe.canvas.style.display = value ? 'block' : 'none'
   })
+  let fadeFolder = pane.addFolder({ title: 'fade' })
+  fadeFolder.addInput(params.fade, 'active')
+  fadeFolder.addInput(params.fade, 'frameLength', { min: 1, max: 200, step: 1 })
+  fadeFolder.addButton({ title: 'Fade in' }).on('click', () => {
+    params.fade.active = false
+    params.fade.currFrame = 0
+    params.fade.direction = FADE_DIRECTION.IN
+    params.fade.fadeIn = true
+  })
+  fadeFolder.addButton({ title: 'Fade out' }).on('click', () => {
+    params.fade.active = false
+    params.fade.currFrame = params.fade.frameLength
+    params.fade.direction = FADE_DIRECTION.OUT
+    params.fade.fadeIn = true
+  })
+  let delayFolder = pane.addFolder({ title: 'Delay' })
+  delayFolder.addInput(params, 'delay')
+  delayFolder.addInput(params, 'offset', { min: 0.01, max: 2, step: 0.01 })
+  delayFolder.addInput(params, 'delayOffsetSpeed', {
+    min: -0.03,
+    max: 0.03,
+    step: 0.0001
+  })
 
-let delayFolder = pane.addFolder({ title: 'Delay' })
-delayFolder.addInput(params, 'delay')
-delayFolder.addInput(params, 'offset', { min: 0.01, max: 2, step: 0.01 })
-delayFolder.addInput(params, 'delayOffsetSpeed', {
-  min: -0.03,
-  max: 0.03,
-  step: 0.0001
-})
-
-let sizeFolder = pane.addFolder({ title: 'Section Size' })
-sizeFolder.addInput(params, 'changeSize')
-sizeFolder.addInput(params, 'changeSizeSpeed', {
-  min: -0.03,
-  max: 0.03,
-  step: 0.0001
-})
-sizeFolder.addInput(params, 'minSectionSize', { min: 20, max: 400, step: 1 })
-sizeFolder.addInput(params, 'maxSectionSize', { min: 20, max: 800, step: 1 })
-sizeFolder.addMonitor(params, 'sectionSize', { readonly: true })
+  let sizeFolder = pane.addFolder({ title: 'Section Size' })
+  sizeFolder.addInput(params, 'changeSize')
+  sizeFolder.addInput(params, 'changeSizeSpeed', {
+    min: -0.03,
+    max: 0.03,
+    step: 0.0001
+  })
+  sizeFolder.addInput(params, 'minSectionSize', { min: 20, max: 400, step: 1 })
+  sizeFolder.addInput(params, 'maxSectionSize', { min: 20, max: 800, step: 1 })
+  sizeFolder.addMonitor(params, 'sectionSize', { readonly: true })
+}
 
 const preload = p5 => {
   img = p5.loadImage(files[params.imageIdx])
@@ -94,12 +133,10 @@ const settings = {
 }
 
 canvasSketch(({ p5, render, canvas }) => {
+  setupGUI(pane)
   let section = null
 
-  observe = p5.createGraphics(
-    img.width / 4,
-    img.height / 4
-  )
+  observe = p5.createGraphics(img.width / 4, img.height / 4)
   observe.noFill()
 
   let noiseOffset = p5.createVector(
@@ -202,12 +239,30 @@ canvasSketch(({ p5, render, canvas }) => {
       )
     }
 
+    // TODO implement fade
+    if (params.fade.active || params.fade.loop !== FADE_LOOP.NONE) {
+      if (params.fade.currFrame >= params.fade.frameLength) {
+        params.fade.direction = FADE_DIRECTION.OUT
+      } else if (params.fade.currFrame <= 0) {
+        params.fade.direction = FADE_DIRECTION.IN
+      }
+      params.fade.currFrame += params.fade.direction
+    }
+
     switch (params.displayMode) {
       case displayModes.MIRRORED:
         mirrorGrid(width, params.sectionSize, height, p5, section)
         break
       case displayModes.NORMAL_GRID:
-        justAGrid(width, params.sectionSize, height, p5, section)
+        justAGrid(
+          width,
+          params.sectionSize,
+          height,
+          p5,
+          section,
+          params.fade.frameLength,
+          params.fade.currFrame
+        )
         break
     }
 
@@ -215,11 +270,22 @@ canvasSketch(({ p5, render, canvas }) => {
     noiseOffset.add(0.001, 0.001, params.changeSizeSpeed)
   }
 
-  function justAGrid (width, sectionSize, height, p5, section) {
+  function justAGrid (
+    width,
+    sectionSize,
+    height,
+    p5,
+    section,
+    fadeFrames = 0,
+    currentFrame = 0
+  ) {
     let offset = noiseOffset.copy()
     let slowOffset = noiseOffset.copy()
+
     for (let y = 0; y < height; y += sectionSize) {
       for (let x = 0; x < width; x += sectionSize) {
+        const scaleFactor = p5.map(currentFrame, 0, fadeFrames, 1, 0)
+
         if (params.delay) {
           let offsetx =
             p5.noise(x * 0.001, y * 0.001, params.delayOffset) * params.offset
@@ -242,10 +308,14 @@ canvasSketch(({ p5, render, canvas }) => {
             (img.height - sectionSize) * offsety
           )
         }
+        p5.push()
+        p5.translate(x + sectionSize / 2, y + sectionSize / 2)
+        p5.scale(scaleFactor)
+
         p5.image(
           img,
-          x,
-          y,
+          -sectionSize / 2,
+          -sectionSize / 2,
           sectionSize,
           sectionSize,
           section.x,
@@ -253,6 +323,75 @@ canvasSketch(({ p5, render, canvas }) => {
           sectionSize / params.zoom,
           sectionSize / params.zoom
         )
+        p5.pop()
+        if (params.delay) {
+          offset.add(0.01, 0.01, 0)
+        }
+      }
+      if (params.delay) {
+        slowOffset.add(0.01, 0.01, 0)
+        offset = slowOffset.copy()
+      }
+    }
+    params.delayOffset += params.delayOffsetSpeed
+  }
+
+  function justAGridWithInset (width, sectionSize, height, p5, section) {
+    const centerX = width / 2
+    const centerY = height / 2
+    const maxDistance = p5.dist(0, 0, centerX, centerY)
+
+    let offset = noiseOffset.copy()
+    let slowOffset = noiseOffset.copy()
+
+    for (let y = 0; y < height; y += sectionSize) {
+      for (let x = 0; x < width; x += sectionSize) {
+        const distanceFromCenter = p5.dist(
+          x + sectionSize / 2,
+          y + sectionSize / 2,
+          centerX,
+          centerY
+        )
+        const scaleFactor = p5.map(distanceFromCenter, 0, maxDistance, 1, 0)
+
+        if (params.delay) {
+          let offsetx =
+            p5.noise(x * 0.001, y * 0.001, params.delayOffset) * params.offset
+          let offsety =
+            p5.noise(x * 0.001, y * 0.001, params.delayOffset + 1000) *
+            params.offset
+          section.x = p5.map(
+            p5.noise(offset.x),
+            0,
+            1,
+            0,
+            (img.width - sectionSize) * offsetx
+          )
+
+          section.y = p5.map(
+            p5.noise(offset.y),
+            0,
+            1,
+            0,
+            (img.height - sectionSize) * offsety
+          )
+        }
+        p5.push()
+        p5.translate(x + sectionSize / 2, y + sectionSize / 2)
+        p5.scale(scaleFactor)
+
+        p5.image(
+          img,
+          -sectionSize / 2,
+          -sectionSize / 2,
+          sectionSize,
+          sectionSize,
+          section.x,
+          section.y,
+          sectionSize / params.zoom,
+          sectionSize / params.zoom
+        )
+        p5.pop()
         if (params.delay) {
           offset.add(0.01, 0.01, 0)
         }
