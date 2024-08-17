@@ -37,16 +37,8 @@ const displayModes = {
 let observe
 
 const FADE_DIRECTION = {
-  IN: 1,
-  OUT: -1,
-  NONE: 0
-}
-
-// not really loop - if it's a one-off direction
-// a "onsie"
-const FADE_LOOP = {
-  IN: 1,
-  OUT: -1,
+  IN: -1,
+  OUT: 1,
   NONE: 0
 }
 
@@ -54,13 +46,9 @@ let params = {
   displayMode: displayModes.NORMAL_GRID,
   delay: false,
   fade: {
-    active: false,
     frameLength: 20,
     currFrame: 0,
-    direction: FADE_DIRECTION.NONE,
-    loop: FADE_LOOP.NONE,
-    fadeIn: false,
-    fadeOut: false
+    direction: FADE_DIRECTION.NONE
   },
   changeSize: false,
   changeSizeSpeed: 0.0001,
@@ -82,22 +70,21 @@ function setupGUI (pane) {
   pane.addInput(params, 'zoom', { min: 0.01, max: 10, step: 0.01 })
   pane.addInput(params, 'showObserver').on('change', ({ value }) => {
     observe.canvas.style.display = value ? 'block' : 'none'
+    // observe.canvas.style['margin-left'] = '50px'
+    observe.canvas.style.margin = '0 0 0 50px'
+
   })
   let fadeFolder = pane.addFolder({ title: 'fade' })
-  fadeFolder.addInput(params.fade, 'active')
   fadeFolder.addInput(params.fade, 'frameLength', { min: 1, max: 200, step: 1 })
   fadeFolder.addButton({ title: 'Fade in' }).on('click', () => {
-    params.fade.active = false
-    params.fade.currFrame = 0
+    params.fade.currFrame = params.fade.frameLength
     params.fade.direction = FADE_DIRECTION.IN
-    params.fade.fadeIn = true
   })
   fadeFolder.addButton({ title: 'Fade out' }).on('click', () => {
-    params.fade.active = false
-    params.fade.currFrame = params.fade.frameLength
+    params.fade.currFrame = 0
     params.fade.direction = FADE_DIRECTION.OUT
-    params.fade.fadeIn = true
   })
+
   let delayFolder = pane.addFolder({ title: 'Delay' })
   delayFolder.addInput(params, 'delay')
   delayFolder.addInput(params, 'offset', { min: 0.01, max: 2, step: 0.01 })
@@ -239,14 +226,20 @@ canvasSketch(({ p5, render, canvas }) => {
       )
     }
 
-    // TODO implement fade
-    if (params.fade.active || params.fade.loop !== FADE_LOOP.NONE) {
-      if (params.fade.currFrame >= params.fade.frameLength) {
-        params.fade.direction = FADE_DIRECTION.OUT
-      } else if (params.fade.currFrame <= 0) {
-        params.fade.direction = FADE_DIRECTION.IN
-      }
+    if (params.fade.direction !== FADE_DIRECTION.NONE) {
       params.fade.currFrame += params.fade.direction
+
+      if (
+        params.fade.direction === FADE_DIRECTION.OUT &&
+        params.fade.currFrame >= params.fade.frameLength
+      ) {
+        params.fade.direction = FADE_DIRECTION.NONE
+      } else if (
+        params.fade.direction === FADE_DIRECTION.IN &&
+        params.fade.currFrame <= 0
+      ) {
+        params.fade.direction = FADE_DIRECTION.NONE
+      }
     }
 
     switch (params.displayMode) {
@@ -267,6 +260,7 @@ canvasSketch(({ p5, render, canvas }) => {
     }
 
     // Increment noise offsets for the next frame
+    // TODO: add x/y (copy location) to GUI
     noiseOffset.add(0.001, 0.001, params.changeSizeSpeed)
   }
 
