@@ -51,10 +51,15 @@ let params = {
     direction: FADE_DIRECTION.NONE
   },
   changeSize: false,
-  changeSizeSpeed: 0.0001,
   minSectionSize: 10,
   maxSectionSize: 0,
   sectionSize: 50,
+  section: {
+    size: 0,
+    xSpeed: 0.001,
+    ySpeed: 0.001,
+    sizeSpeed: 0.0001
+  },
   zoom: 1.0,
   offset: 1.0,
   delayOffset: Math.random() * 1000,
@@ -70,9 +75,7 @@ function setupGUI (pane) {
   pane.addInput(params, 'zoom', { min: 0.01, max: 10, step: 0.01 })
   pane.addInput(params, 'showObserver').on('change', ({ value }) => {
     observe.canvas.style.display = value ? 'block' : 'none'
-    // observe.canvas.style['margin-left'] = '50px'
     observe.canvas.style.margin = '0 0 0 50px'
-
   })
   let fadeFolder = pane.addFolder({ title: 'fade' })
   fadeFolder.addInput(params.fade, 'frameLength', { min: 1, max: 200, step: 1 })
@@ -96,13 +99,24 @@ function setupGUI (pane) {
 
   let sizeFolder = pane.addFolder({ title: 'Section Size' })
   sizeFolder.addInput(params, 'changeSize')
-  sizeFolder.addInput(params, 'changeSizeSpeed', {
+  sizeFolder.addInput(params.section, 'sizeSpeed', {
     min: -0.03,
     max: 0.03,
     step: 0.0001
   })
   sizeFolder.addInput(params, 'minSectionSize', { min: 20, max: 400, step: 1 })
   sizeFolder.addInput(params, 'maxSectionSize', { min: 20, max: 800, step: 1 })
+  sizeFolder.addInput(params.section, 'xSpeed', { title: 'width speed',
+    min: -0.03,
+    max: 0.03,
+    step: 0.0001
+  })
+  sizeFolder.addInput(params.section, 'ySpeed', { title: 'height speed',
+    min: -0.03,
+    max: 0.03,
+    step: 0.0001
+  })
+
   sizeFolder.addMonitor(params, 'sectionSize', { readonly: true })
 }
 
@@ -260,8 +274,7 @@ canvasSketch(({ p5, render, canvas }) => {
     }
 
     // Increment noise offsets for the next frame
-    // TODO: add x/y (copy location) to GUI
-    noiseOffset.add(0.001, 0.001, params.changeSizeSpeed)
+    noiseOffset.add(params.section.xSpeed, params.section.ySpeed, params.section.sizeSpeed)
   }
 
   function justAGrid (
