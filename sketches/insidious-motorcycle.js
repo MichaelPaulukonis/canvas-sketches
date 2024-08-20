@@ -31,7 +31,9 @@ let files = [
 
 const displayModes = {
   MIRRORED: 'mirrored',
-  NORMAL_GRID: 'grid'
+  NORMAL_GRID: 'grid',
+  INSET: 'inset',
+  NOISE_INSET: 'noise_inset'
 }
 
 let observe
@@ -106,12 +108,14 @@ function setupGUI (pane) {
   })
   sizeFolder.addInput(params, 'minSectionSize', { min: 20, max: 400, step: 1 })
   sizeFolder.addInput(params, 'maxSectionSize', { min: 20, max: 800, step: 1 })
-  sizeFolder.addInput(params.section, 'xSpeed', { title: 'width speed',
+  sizeFolder.addInput(params.section, 'xSpeed', {
+    title: 'width speed',
     min: -0.03,
     max: 0.03,
     step: 0.0001
   })
-  sizeFolder.addInput(params.section, 'ySpeed', { title: 'height speed',
+  sizeFolder.addInput(params.section, 'ySpeed', {
+    title: 'height speed',
     min: -0.03,
     max: 0.03,
     step: 0.0001
@@ -263,24 +267,34 @@ canvasSketch(({ p5, render, canvas }) => {
       case displayModes.NORMAL_GRID:
         justAGrid(
           width,
-          params.sectionSize,
           height,
+          params.sectionSize,
           p5,
           section,
           params.fade.frameLength,
           params.fade.currFrame
         )
         break
+      case displayModes.INSET:
+        justAGridWithInset(width, height, params.sectionSize, p5, section)
+        break
+      case displayModes.NOISE_INSET:
+        gridWithNoiseInset(width, height, params.sectionSize, p5, section)
+        break
     }
 
     // Increment noise offsets for the next frame
-    noiseOffset.add(params.section.xSpeed, params.section.ySpeed, params.section.sizeSpeed)
+    noiseOffset.add(
+      params.section.xSpeed,
+      params.section.ySpeed,
+      params.section.sizeSpeed
+    )
   }
 
   function justAGrid (
     width,
-    sectionSize,
     height,
+    sectionSize,
     p5,
     section,
     fadeFrames = 0,
@@ -343,7 +357,10 @@ canvasSketch(({ p5, render, canvas }) => {
     params.delayOffset += params.delayOffsetSpeed
   }
 
-  function justAGridWithInset (width, sectionSize, height, p5, section) {
+  // TODO: dist from center matches the bok-cover idea
+  // a function based on 2D perlin noise would something else
+  // pass in the offset function?
+  function justAGridWithInset (width, height, sectionSize, p5, section) {
     const centerX = width / 2
     const centerY = height / 2
     const maxDistance = p5.dist(0, 0, centerX, centerY)
@@ -360,6 +377,83 @@ canvasSketch(({ p5, render, canvas }) => {
           centerY
         )
         const scaleFactor = p5.map(distanceFromCenter, 0, maxDistance, 1, 0)
+
+        if (params.delay) {
+          let offsetx =
+            p5.noise(x * 0.001, y * 0.001, params.delayOffset) * params.offset
+          let offsety =
+            p5.noise(x * 0.001, y * 0.001, params.delayOffset + 1000) *
+            params.offset
+          section.x = p5.map(
+            p5.noise(offset.x),
+            0,
+            1,
+            0,
+            (img.width - sectionSize) * offsetx
+          )
+
+          section.y = p5.map(
+            p5.noise(offset.y),
+            0,
+            1,
+            0,
+            (img.height - sectionSize) * offsety
+          )
+        }
+        p5.push()
+        p5.translate(x + sectionSize / 2, y + sectionSize / 2)
+        p5.scale(scaleFactor)
+
+        p5.image(
+          img,
+          -sectionSize / 2,
+          -sectionSize / 2,
+          sectionSize,
+          sectionSize,
+          section.x,
+          section.y,
+          sectionSize / params.zoom,
+          sectionSize / params.zoom
+        )
+        p5.pop()
+        if (params.delay) {
+          offset.add(0.01, 0.01, 0)
+        }
+      }
+      if (params.delay) {
+        slowOffset.add(0.01, 0.01, 0)
+        offset = slowOffset.copy()
+      }
+    }
+    params.delayOffset += params.delayOffsetSpeed
+  }
+
+  // TODO: implement fade
+  // oh, wait. sigh.
+  function gridWithNoiseInset (width, height, sectionSize, p5, section) {
+    const centerX = width / 2
+    const centerY = height / 2
+    const maxDistance = p5.dist(0, 0, centerX, centerY)
+
+    let offset = noiseOffset.copy()
+    let slowOffset = noiseOffset.copy()
+
+    for (let y = 0; y < height; y += sectionSize) {
+      for (let x = 0; x < width; x += sectionSize) {
+        const distanceFromCenter = p5.dist(
+          x + sectionSize / 2,
+          y + sectionSize / 2,
+          centerX,
+          centerY
+        )
+        const scaleFactor = p5.map(
+          p5.noise(x * 0.001 + 1000, y * 0.001 + 1000, params.delayOffset) *
+            params.offset,
+          0,
+          1, // maxDistance,
+          1,
+          0
+        )
 
         if (params.delay) {
           let offsetx =
