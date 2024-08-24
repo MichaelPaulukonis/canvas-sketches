@@ -3,6 +3,7 @@
 // the name comes from an auto-generated default in editor.p5.org
 
 const canvasSketch = require('canvas-sketch')
+const random = require('canvas-sketch-util/random');
 import p5 from 'p5'
 const { Pane } = require('tweakpane')
 
@@ -45,7 +46,7 @@ const FADE_DIRECTION = {
 }
 
 let params = {
-  displayMode: displayModes.NORMAL_GRID,
+  displayMode: displayModes.NOISE_INSET,
   delay: false,
   fade: {
     frameLength: 20,
@@ -61,6 +62,14 @@ let params = {
     xSpeed: 0.001,
     ySpeed: 0.001,
     sizeSpeed: 0.0001
+  },
+  inset: {
+    x: 0.001,
+    y: 0.001,
+    z: Math.random() * 1000,
+    zSpeed: 0.001,
+    factor: 1.0,
+    scale: 1.0
   },
   zoom: 1.0,
   offset: 1.0,
@@ -79,6 +88,18 @@ function setupGUI (pane) {
     observe.canvas.style.display = value ? 'block' : 'none'
     observe.canvas.style.margin = '0 0 0 50px'
   })
+
+  let insetFolder = pane.addFolder({ title: 'Inset' })
+  insetFolder.addInput(params.inset, 'x', { min: -2, max: 2, step: 0.0001 })
+  insetFolder.addInput(params.inset, 'y', { min: -2, max: 2, step: 0.0001 })
+  insetFolder.addInput(params.inset, 'zSpeed', { min: -0.01, max: 0.01, step: 0.0001 })
+  insetFolder.addMonitor(params.inset, 'z', { readonly: true })
+  insetFolder.addMonitor(params.inset, 'scale', { readonly: true })
+  // factor has the biggest impact on size of the inset/resultant square-size
+  // but I need a better range
+  // once it goes negative the FX are neat, but upside down
+  insetFolder.addInput(params.inset, 'factor', { min: -1, max: 4, step: 0.01 })
+
   let fadeFolder = pane.addFolder({ title: 'fade' })
   fadeFolder.addInput(params.fade, 'frameLength', { min: 1, max: 200, step: 1 })
   fadeFolder.addButton({ title: 'Fade in' }).on('click', () => {
@@ -98,6 +119,8 @@ function setupGUI (pane) {
     max: 0.03,
     step: 0.0001
   })
+  // this is really a z-value for noise-making
+  delayFolder.addMonitor(params, 'delayOffset', { readonly: true })
 
   let sizeFolder = pane.addFolder({ title: 'Section Size' })
   sizeFolder.addInput(params, 'changeSize')
@@ -438,22 +461,49 @@ canvasSketch(({ p5, render, canvas }) => {
     let offset = noiseOffset.copy()
     let slowOffset = noiseOffset.copy()
 
+    let maxScale = 0
+    let minScale = 1
+
+    // TODO: calculate scaleFactors
+    let scaleMatrix = []
     for (let y = 0; y < height; y += sectionSize) {
+      scaleMatrix[y] = []
       for (let x = 0; x < width; x += sectionSize) {
-        const distanceFromCenter = p5.dist(
-          x + sectionSize / 2,
-          y + sectionSize / 2,
-          centerX,
-          centerY
-        )
+        // TODO: to get a more controllable range
+        // generate all squares and their scaleFactors
+        // THEM re-map them with min/max into the desired range
         const scaleFactor = p5.map(
-          p5.noise(x * 0.001 + 1000, y * 0.001 + 1000, params.delayOffset) *
-            params.offset,
+          p5.noise(x * params.inset.x + 1000, y * params.inset.y + 1000, params.inset.z) *
+            params.inset.factor,
           0,
           1, // maxDistance,
           1,
-          0
+          0.1
         )
+        scaleMatrix[y][x] = scaleFactor
+        // will go negative is the noise value is out of the source range
+        params.inset.scale = scaleFactor
+        maxScale = Math.max(maxScale, scaleFactor)
+        minScale = Math.min(minScale, scaleFactor)
+      }
+
+    }
+
+    for (let y = 0; y < height; y += sectionSize) {
+      for (let x = 0; x < width; x += sectionSize) {
+        // TODO: to get a more controllable range
+        // generate all squares and their scaleFactors
+        // THEM re-map them with min/max into the desired range
+
+        // const scaleFactor = scaleMatrix[y][x]
+        const scaleFactor = p5.map(scaleMatrix[y][x], minScale, maxScale, 1, 0.01)
+
+        // // will go negative is the noise value is out of the source range
+        params.inset.scale = scaleFactor
+
+        params.inset.scale = scaleFactor
+        maxScale = Math.max(maxScale, scaleFactor)
+        minScale = Math.min(minScale, scaleFactor)
 
         if (params.delay) {
           let offsetx =
@@ -503,6 +553,8 @@ canvasSketch(({ p5, render, canvas }) => {
       }
     }
     params.delayOffset += params.delayOffsetSpeed
+    params.inset.z += params.inset.zSpeed
+    // console.log(maxScale, minScale)
   }
 
   function mirrorGrid (width, sectionSize, height, p5, section) {
