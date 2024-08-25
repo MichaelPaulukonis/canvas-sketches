@@ -69,7 +69,9 @@ let params = {
     z: Math.random() * 1000,
     zSpeed: 0.001,
     factor: 1.0,
-    scale: 1.0
+    scale: 1.0,
+    scaleMin: 0.01,
+    scaleMax: 1.0
   },
   zoom: 1.0,
   offset: 1.0,
@@ -99,6 +101,9 @@ function setupGUI (pane) {
   // but I need a better range
   // once it goes negative the FX are neat, but upside down
   insetFolder.addInput(params.inset, 'factor', { min: -1, max: 4, step: 0.01 })
+  insetFolder.addInput(params.inset, 'scaleMin', { min: 0.01, max: 0.9, step: 0.01 })
+  insetFolder.addInput(params.inset, 'scaleMax', { min: 0.01, max: 1.0, step: 0.01 })
+
 
   let fadeFolder = pane.addFolder({ title: 'fade' })
   fadeFolder.addInput(params.fade, 'frameLength', { min: 1, max: 200, step: 1 })
@@ -465,9 +470,8 @@ canvasSketch(({ p5, render, canvas }) => {
     let minScale = 1
 
     // TODO: calculate scaleFactors
-    let scaleMatrix = []
+    let scaleMatrix = {}
     for (let y = 0; y < height; y += sectionSize) {
-      scaleMatrix[y] = []
       for (let x = 0; x < width; x += sectionSize) {
         // TODO: to get a more controllable range
         // generate all squares and their scaleFactors
@@ -480,30 +484,25 @@ canvasSketch(({ p5, render, canvas }) => {
           1,
           0.1
         )
-        scaleMatrix[y][x] = scaleFactor
+        scaleMatrix[`${y}-${x}`] = { scale: scaleFactor }
         // will go negative is the noise value is out of the source range
         params.inset.scale = scaleFactor
         maxScale = Math.max(maxScale, scaleFactor)
         minScale = Math.min(minScale, scaleFactor)
       }
-
     }
+
+    Object.keys(scaleMatrix).forEach(key => {
+      scaleMatrix[key].remap = p5.map(scaleMatrix[key].scale, minScale, maxScale, params.inset.scaleMax, params.inset.scaleMin)
+    })
+    // console.log(JSON.stringify(scaleMatrix))
 
     for (let y = 0; y < height; y += sectionSize) {
       for (let x = 0; x < width; x += sectionSize) {
-        // TODO: to get a more controllable range
-        // generate all squares and their scaleFactors
-        // THEM re-map them with min/max into the desired range
-
-        // const scaleFactor = scaleMatrix[y][x]
-        const scaleFactor = p5.map(scaleMatrix[y][x], minScale, maxScale, 1, 0.01)
-
+        // const scaleFactor = p5.map(scaleMatrix[`${y}-${x}`].scale, minScale, maxScale, 1, 0.01)
+        const scaleFactor = scaleMatrix[`${y}-${x}`].remap
         // // will go negative is the noise value is out of the source range
         params.inset.scale = scaleFactor
-
-        params.inset.scale = scaleFactor
-        maxScale = Math.max(maxScale, scaleFactor)
-        minScale = Math.min(minScale, scaleFactor)
 
         if (params.delay) {
           let offsetx =
