@@ -1,15 +1,32 @@
 // based on (translatef from) https://github.com/constraint-systems/mosaic
 
+const timestamp = () => {
+  const d = new Date()
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  const hour = String(d.getHours()).padStart(2, '0')
+  const min = String(d.getMinutes()).padStart(2, '0')
+  const secs = String(d.getSeconds()).padStart(2, '0')
+  const millis = String(d.getMilliseconds()).padStart(3, '0')
+  return `${year}${month}${day}.${hour}${min}${secs}.${millis}`
+}
+
+function generateFilename (prefix) {
+  return `${prefix || 'sketch'}-${timestamp()}.png`
+}
+
 const sketch = p => {
   let tileSource
   let layoutSource
   let tileLayer
   let layoutLayer
+  let scaledTileLayer, scaledLayoutLayer
   const cellSize = 16
-  const lookups = {
-    blocks: [],
-    layout: []
-  }
+  // const lookups = {
+  //   blocks: [],
+  //   layout: []
+  // }
 
   const sourceData = {
     lookups: [],
@@ -28,7 +45,7 @@ const sketch = p => {
     // tileSource = p.loadImage("images/alice.love.full.png");
   }
 
-  const processImage = (image, layer, lookupTarget) => {
+  const processImage = (image, targetLayer, displayLayer) => {
     return new Promise(resolve => {
       const cols = Math.round(image.width / cellSize)
       const rows = Math.round(image.height / cellSize)
@@ -62,7 +79,7 @@ const sketch = p => {
               quad.push(pixel)
             }
             localLs.push(quad)
-            layer.image(
+            targetLayer.image(
               image,
               c * cellSize,
               r * cellSize,
@@ -73,6 +90,8 @@ const sketch = p => {
               cellSize,
               cellSize
             )
+            displayLayer.image(targetLayer, 0, 0, displayLayer.width, displayLayer.height);
+
             if (cells.length === 0) {
               console.log('set src')
               resolve({
@@ -158,22 +177,41 @@ const sketch = p => {
     p.createCanvas(layoutSource.width, layoutSource.height)
     p.pixelDensity(1)
     tileLayer = p.createGraphics(tileSource.width, tileSource.height)
-    tileLayer.show()
+    // tileLayer.show()
     layoutLayer = p.createGraphics(layoutSource.width, layoutSource.height)
-    layoutLayer.show()
+    // layoutLayer.show()
+    // Create scaled graphics elements
+    const scaleFactor = 0.25 // Adjust this factor as needed
+    scaledTileLayer = p.createGraphics(
+      tileSource.width * scaleFactor,
+      tileSource.height * scaleFactor
+    )
+    scaledTileLayer.show()
+    scaledLayoutLayer = p.createGraphics(
+      layoutSource.width * scaleFactor,
+      layoutSource.height * scaleFactor
+    )
+    scaledLayoutLayer.show()
+
     p.noLoop()
   }
 
   p.draw = () => {
     p.background(220)
     Promise.all([
-      processImage(tileSource, tileLayer, images.tiles),
-      processImage(layoutSource, layoutLayer, images.layout)
+      processImage(tileSource, tileLayer, scaledTileLayer),
+      processImage(layoutSource, layoutLayer, scaledLayoutLayer)
     ]).then(([blockSd, layoutSd]) => {
       images.tiles = blockSd
       images.layout = layoutSd
       processMosaic(p)
     })
+  }
+
+  p.keyPressed = () => {
+    if (p.key === 'S') {
+      p.save(generateFilename('mosaic-tiles'))
+    }
   }
 }
 
