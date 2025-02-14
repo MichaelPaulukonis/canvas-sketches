@@ -174,22 +174,28 @@ const sketch = p => {
   }
 
   p.setup = () => {
-    p.createCanvas(layoutSource.width, layoutSource.height)
+    const mainCanvas = document.getElementById('main-canvas')
+    p.createCanvas(layoutSource.width, layoutSource.height, mainCanvas)
     p.pixelDensity(1)
     tileLayer = p.createGraphics(tileSource.width, tileSource.height)
-    // tileLayer.show()
     layoutLayer = p.createGraphics(layoutSource.width, layoutSource.height)
-    // layoutLayer.show()
-    // Create scaled graphics elements
+
     const scaleFactor = 0.25 // Adjust this factor as needed
+
+    const scaledTileCanvas = document.getElementById('tile-layer')
     scaledTileLayer = p.createGraphics(
       tileSource.width * scaleFactor,
-      tileSource.height * scaleFactor
+      tileSource.height * scaleFactor,
+      scaledTileCanvas
     )
     scaledTileLayer.show()
+    // scaledTileLayer.id('tile-layer')
+
+    const scaledLayoutCanvas = document.getElementById('layout-layer')
     scaledLayoutLayer = p.createGraphics(
       layoutSource.width * scaleFactor,
-      layoutSource.height * scaleFactor
+      layoutSource.height * scaleFactor,
+      scaledLayoutCanvas
     )
     scaledLayoutLayer.show()
 

@@ -1,7 +1,32 @@
 html, body {
   margin: 0;
   padding: 0;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
+
+.container {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+}
+
+.source-canvases {
+  display: flex;
+  flex-direction: column;
+  margin-right: 20px; /* Adjust the spacing as needed */
+}
+
 canvas {
   display: block;
+}
+
+#tile-layer {
+  margin-bottom: 10px; /* Adjust the spacing as needed */
+}
+
+#main-canvas {
+  margin-left: 20px; /* Adjust the spacing as needed */
 }
