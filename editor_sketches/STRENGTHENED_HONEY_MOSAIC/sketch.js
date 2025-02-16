@@ -60,17 +60,24 @@ const sketch = p => {
     sources.layout.image = p.loadImage('images/alice.love.full.png')
   }
 
-  const processImage = (image, targetLayer, displayLayer) => {
+  // I tried changing the size of the smallCtx
+  // but it made no difference
+  // scale up the layer itself, instead?
+  // that seems pointless, since we're analyzing the SMALL context anyway ugh
+  // what if we drop cellSize instead???
+  // (seems sus)
+  const imageToTiles = (image, targetLayer, displayLayer, sizeMod = 1) => {
+    let localCellSize = cellSize / sizeMod
     modal.processing = true
     displayLayer.background(210)
     targetLayer.background(210)
     return new Promise(resolve => {
-      const cols = Math.round(image.width / cellSize)
-      const rows = Math.round(image.height / cellSize)
+      const cols = Math.round(image.width / localCellSize)
+      const rows = Math.round(image.height / localCellSize)
       const localLs = []
-      // this needs to be discarded when we are done, or the canvas stays around forever
       const smallCtx = p.createGraphics(cols * 2, rows * 2)
       smallCtx.image(image, 0, 0, smallCtx.width, smallCtx.height)
+      console.log(`smallContext: ${smallCtx.width} x ${smallCtx.height}`)
 
       const cells = Array(cols * rows)
         .fill(0)
@@ -96,14 +103,14 @@ const sketch = p => {
             localLs.push(quad)
             targetLayer.image(
               image,
-              c * cellSize,
-              r * cellSize,
-              cellSize,
-              cellSize,
-              c * cellSize,
-              r * cellSize,
-              cellSize,
-              cellSize
+              c * localCellSize,
+              r * localCellSize,
+              localCellSize,
+              localCellSize,
+              c * localCellSize,
+              r * localCellSize,
+              localCellSize,
+              localCellSize
             )
             displayLayer.image(
               targetLayer,
@@ -145,8 +152,9 @@ const sketch = p => {
     })
   }
 
-  const processMosaic = (targetLayer, displayLayer) => {
+  const buildMosaic = (targetLayer, displayLayer) => {
     displayLayer.background(210)
+    targetLayer.background(210)
 
     const cells = Array(sources.layout.cols * sources.layout.rows)
       .fill(0)
@@ -218,9 +226,9 @@ const sketch = p => {
     const mainCanvas = document.getElementById('main-canvas')
     const { width, height } = getResizeDimensions(sources.layout.image)
     p.createCanvas(width, height, mainCanvas)
-    const slider = p.createSlider(5, 50, cellSize, 1);
-    slider.position(10, p.height - 30);
-    slider.style('width', '200px');
+    const slider = p.createSlider(5, 50, cellSize, 1)
+    slider.position(10, p.height - 30)
+    slider.style('width', '200px')
     slider.attribute('title', 'Cell Size')
     slider.input(() => {
       if (modal.processing) {
@@ -282,18 +290,21 @@ const sketch = p => {
 
   const processEverything = () => {
     Promise.all([
-      processImage(sources.tiles.image, tileLayer, scaledTileLayer),
-      processImage(sources.layout.image, layoutLayer, scaledLayoutLayer)
+      imageToTiles(sources.tiles.image, tileLayer, scaledTileLayer),
+      imageToTiles(sources.layout.image, layoutLayer, scaledLayoutLayer)
     ]).then(([blockSd, layoutSd]) => {
       sources.tiles = blockSd
       sources.layout = layoutSd
-      processMosaic(targetLayer, p)
+      buildMosaic(targetLayer, p)
     })
   }
 
   p.keyPressed = () => {
     if (p.key === 'S') {
       targetLayer.save(generateFilename('mosaic-tiles'))
+    } else if (p.key === '!') {
+      imageToTiles(sources.layout.image, layoutLayer, scaledLayoutLayer, 2)
+      .then(() => buildMosaic(targetLayer, p))
     }
   }
 
@@ -321,13 +332,13 @@ const sketch = p => {
           )
           p.resizeCanvas(newW, newH)
         }
-        processImage(loadedImg, destinationLayer, scaledLayer).then(data => {
+        imageToTiles(loadedImg, destinationLayer, scaledLayer).then(data => {
           sourceData.lookups = data.lookups
           sourceData.cols = data.cols
           sourceData.rows = data.rows
           sourceData.image = loadedImg
           modal.processing = false
-          processMosaic(targetLayer, p)
+          buildMosaic(targetLayer, p)
         })
       })
     }
