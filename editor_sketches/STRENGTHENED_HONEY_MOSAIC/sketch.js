@@ -22,6 +22,7 @@ const sketch = p => {
   let scaledTileLayer, scaledLayoutLayer
   let targetLayer
   let cellSize = 16
+  let layoutSizeMod = 1
   const modal = {
     processing: false
   }
@@ -60,21 +61,17 @@ const sketch = p => {
     sources.layout.image = p.loadImage('images/alice.love.full.png')
   }
 
-  // I tried changing the size of the smallCtx
-  // but it made no difference
-  // scale up the layer itself, instead?
-  // that seems pointless, since we're analyzing the SMALL context anyway ugh
-  // what if we drop cellSize instead???
-  // (seems sus)
-  // mmmmmmmmmmm but when we use a larger layoutLayer
-  // we also have a larger mosaicLayer
-  const imageToTiles = (image, targetLayer, displayLayer) => {
+  // If cellSize is to change for a layer
+  // the cellSize change needs to be reflected in buildMosaic
+  // this way, we can have different cell sizes for the layout and the tiles
+  const imageToTiles = (image, targetLayer, displayLayer, sizeMod = 1) => {
+    const localCellSize = cellSize * sizeMod
     modal.processing = true
     displayLayer.background(210)
     targetLayer.background(210)
     return new Promise(resolve => {
-      const cols = Math.round(image.width / cellSize)
-      const rows = Math.round(image.height / cellSize)
+      const cols = Math.round(image.width / localCellSize)
+      const rows = Math.round(image.height / localCellSize)
       const localLs = []
       const smallCtx = p.createGraphics(cols * 2, rows * 2)
       smallCtx.image(image, 0, 0, smallCtx.width, smallCtx.height)
@@ -104,14 +101,14 @@ const sketch = p => {
             localLs.push(quad)
             targetLayer.image(
               image,
-              c * cellSize,
-              r * cellSize,
-              cellSize,
-              cellSize,
-              c * cellSize,
-              r * cellSize,
-              cellSize,
-              cellSize
+              c * localCellSize,
+              r * localCellSize,
+              localCellSize,
+              localCellSize,
+              c * localCellSize,
+              r * localCellSize,
+              localCellSize,
+              localCellSize
             )
             displayLayer.image(
               targetLayer,
@@ -188,16 +185,16 @@ const sketch = p => {
             }
           }
 
-          const sc = minIndex % sources.tiles.cols
-          const sr = Math.floor(minIndex / sources.tiles.cols)
+          const tc = minIndex % sources.tiles.cols
+          const tr = Math.floor(minIndex / sources.tiles.cols)
           targetLayer.image(
             sources.tiles.image,
-            c * cellSize,
-            r * cellSize,
-            cellSize,
-            cellSize,
-            sc * cellSize,
-            sr * cellSize,
+            c * cellSize * layoutSizeMod,
+            r * cellSize * layoutSizeMod,
+            cellSize * layoutSizeMod,
+            cellSize * layoutSizeMod,
+            tc * cellSize,
+            tr * cellSize,
             cellSize,
             cellSize
           )
@@ -303,6 +300,14 @@ const sketch = p => {
   p.keyPressed = () => {
     if (p.key === 'S') {
       targetLayer.save(generateFilename('mosaic-tiles'))
+    } else if (p.key === '!') {
+      layoutSizeMod = layoutSizeMod === 1 ? 0.5 : 1
+      imageToTiles(sources.layout.image, layoutLayer, scaledLayoutLayer, layoutSizeMod).then(
+        layoutSd => {
+          sources.layout = layoutSd
+          buildMosaic(targetLayer, p)
+        }
+      )
     }
   }
 
