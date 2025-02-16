@@ -11,12 +11,15 @@ html, body {
   display: flex;
   flex-direction: row;
   align-items: flex-start;
+  overflow:auto;
 }
 
 .source-canvases {
   display: flex;
   flex-direction: column;
-  margin-right: 20px; /* Adjust the spacing as needed */
+  margin-right: 20px;
+  flex-shrink: 0;
+  max-width: 100%;
 }
 
 canvas {
@@ -24,9 +27,13 @@ canvas {
 }
 
 #tile-layer {
-  margin-bottom: 10px; /* Adjust the spacing as needed */
+  margin-bottom: 10px; 
 }
 
 #main-canvas {
-  margin-left: 20px; /* Adjust the spacing as needed */
+  display: flex;
+  flex-direction: column;
+  margin-left: 20px;
+  flex-shrink: 0;
+  max-width: 100%;
 }
