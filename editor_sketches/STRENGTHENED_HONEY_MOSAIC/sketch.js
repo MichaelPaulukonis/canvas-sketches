@@ -66,14 +66,15 @@ const sketch = p => {
   // that seems pointless, since we're analyzing the SMALL context anyway ugh
   // what if we drop cellSize instead???
   // (seems sus)
-  const imageToTiles = (image, targetLayer, displayLayer, sizeMod = 1) => {
-    let localCellSize = cellSize / sizeMod
+  // mmmmmmmmmmm but when we use a larger layoutLayer
+  // we also have a larger mosaicLayer
+  const imageToTiles = (image, targetLayer, displayLayer) => {
     modal.processing = true
     displayLayer.background(210)
     targetLayer.background(210)
     return new Promise(resolve => {
-      const cols = Math.round(image.width / localCellSize)
-      const rows = Math.round(image.height / localCellSize)
+      const cols = Math.round(image.width / cellSize)
+      const rows = Math.round(image.height / cellSize)
       const localLs = []
       const smallCtx = p.createGraphics(cols * 2, rows * 2)
       smallCtx.image(image, 0, 0, smallCtx.width, smallCtx.height)
@@ -103,14 +104,14 @@ const sketch = p => {
             localLs.push(quad)
             targetLayer.image(
               image,
-              c * localCellSize,
-              r * localCellSize,
-              localCellSize,
-              localCellSize,
-              c * localCellSize,
-              r * localCellSize,
-              localCellSize,
-              localCellSize
+              c * cellSize,
+              r * cellSize,
+              cellSize,
+              cellSize,
+              c * cellSize,
+              r * cellSize,
+              cellSize,
+              cellSize
             )
             displayLayer.image(
               targetLayer,
@@ -302,9 +303,6 @@ const sketch = p => {
   p.keyPressed = () => {
     if (p.key === 'S') {
       targetLayer.save(generateFilename('mosaic-tiles'))
-    } else if (p.key === '!') {
-      imageToTiles(sources.layout.image, layoutLayer, scaledLayoutLayer, 2)
-      .then(() => buildMosaic(targetLayer, p))
     }
   }
 
