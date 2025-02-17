@@ -21,7 +21,9 @@ const sketch = p => {
   let layoutLayer
   let scaledTileLayer, scaledLayoutLayer
   let targetLayer
-  let cellSize = 16
+  // let cellSize = 16
+  let tileCellSize = 16
+  let layoutCellSize = 16
   let layoutSizeMod = 1
   const modal = {
     processing: false
@@ -61,10 +63,13 @@ const sketch = p => {
     sources.layout.image = p.loadImage('images/alice.love.full.png')
   }
 
-  // If cellSize is to change for a layer
-  // the cellSize change needs to be reflected in buildMosaic
-  // this way, we can have different cell sizes for the layout and the tiles
-  const imageToTiles = (image, targetLayer, displayLayer, sizeMod = 1) => {
+  const imageToTiles = (
+    image,
+    targetLayer,
+    displayLayer,
+    cellSize,
+    sizeMod = 1
+  ) => {
     const localCellSize = cellSize * sizeMod
     modal.processing = true
     displayLayer.background(210)
@@ -189,14 +194,14 @@ const sketch = p => {
           const tr = Math.floor(minIndex / sources.tiles.cols)
           targetLayer.image(
             sources.tiles.image,
-            c * cellSize * layoutSizeMod,
-            r * cellSize * layoutSizeMod,
-            cellSize * layoutSizeMod,
-            cellSize * layoutSizeMod,
-            tc * cellSize,
-            tr * cellSize,
-            cellSize,
-            cellSize
+            c * layoutCellSize * layoutSizeMod,
+            r * layoutCellSize * layoutSizeMod,
+            layoutCellSize * layoutSizeMod,
+            layoutCellSize * layoutSizeMod,
+            tc * tileCellSize,
+            tr * tileCellSize,
+            tileCellSize,
+            tileCellSize
           )
 
           displayLayer.image(
@@ -220,22 +225,88 @@ const sketch = p => {
     drawCell()
   }
 
+  function setupUI () {
+    // Create UI container
+    const uiContainer = p.createDiv('')
+    uiContainer.style('position', 'absolute')
+    uiContainer.style('right', '10px')
+    uiContainer.style('top', '10px')
+    uiContainer.style('background', 'rgba(255,255,255,0.8)')
+    uiContainer.style('padding', '10px')
+    uiContainer.style('border-radius', '5px')
+
+    p.createDiv('Tiles cell size:').parent(uiContainer)
+    const tileCellSlider = p.createSlider(5, 50, tileCellSize, 1)
+    tileCellSlider.parent(uiContainer)
+    tileCellSlider.input(() => {
+      if (modal.processing) {
+        tileCellSlider.value(tileCellSize)
+        return
+      }
+      tileCellSize = tileCellSlider.value()
+      imageToTiles(
+        sources.tiles.image,
+        tileLayer,
+        scaledTileLayer,
+        tileCellSize
+      ).then(blockSd => {
+        sources.tiles = blockSd
+        buildMosaic(targetLayer, p)
+      })
+    })
+
+    p.createDiv('Layout cell size:').parent(uiContainer)
+    const layoutCellSlider = p.createSlider(5, 50, layoutCellSize, 1)
+    layoutCellSlider.parent(uiContainer)
+    layoutCellSlider.input(() => {
+      if (modal.processing) {
+        layoutCellSlider.value(layoutCellSize)
+        return
+      }
+      layoutCellSize = layoutCellSlider.value()
+      imageToTiles(
+        sources.layout.image,
+        layoutLayer,
+        scaledLayoutLayer,
+        layoutCellSize
+      ).then(layoutSd => {
+        sources.layout = layoutSd
+        buildMosaic(targetLayer, p)
+      })
+    })
+
+    // TODO: uhm, not working yet
+    p.createDiv('Lock cell sizes').parent(uiContainer)
+    const lockCellSizes = p.createCheckbox('', false)
+    lockCellSizes.parent(uiContainer)
+    lockCellSizes.changed(() => {
+      if (lockCellSizes.checked()) {
+        tileCellSlider.value(layoutCellSize)
+        tileCellSize = layoutCellSize
+        tileCellSlider.attribute('disabled', '')
+      } else {
+        tileCellSlider.removeAttribute('disabled')
+      }
+    })
+  }
+
   p.setup = () => {
     const mainCanvas = document.getElementById('main-canvas')
     const { width, height } = getResizeDimensions(sources.layout.image)
     p.createCanvas(width, height, mainCanvas)
-    const slider = p.createSlider(5, 50, cellSize, 1)
-    slider.position(10, p.height - 30)
-    slider.style('width', '200px')
-    slider.attribute('title', 'Cell Size')
-    slider.input(() => {
-      if (modal.processing) {
-        slider.value(cellSize)
-        return
-      }
-      cellSize = slider.value()
-      processEverything()
-    })
+    setupUI()
+    // const slider = p.createSlider(5, 50, cellSize, 1)
+    // slider.position(10, p.height - 30)
+    // slider.style('width', '200px')
+    // slider.attribute('title', 'Cell Size')
+    // slider.input(() => {
+    //   if (modal.processing) {
+    //     slider.value(cellSize)
+    //     return
+    //   }
+    //   cellSize = slider.value()
+    //   processEverything()
+    // })
 
     targetLayer = p.createGraphics(
       sources.layout.image.width,
@@ -262,7 +333,7 @@ const sketch = p => {
 
     scaledTileLayer = p.createGraphics(newWidth, newHeight, scaledTileCanvas)
     scaledTileLayer.drop(file =>
-      handleFile(file, tileLayer, scaledTileLayer, sources.tiles)
+      handleFile(file, tileLayer, scaledTileLayer, sources.tiles, tileCellSize)
     )
 
     scaledTileLayer.show()
@@ -277,7 +348,14 @@ const sketch = p => {
       scaledLayoutCanvas
     )
     scaledLayoutLayer.drop(file =>
-      handleFile(file, layoutLayer, scaledLayoutLayer, sources.layout, true)
+      handleFile(
+        file,
+        layoutLayer,
+        scaledLayoutLayer,
+        sources.layout,
+        layoutCellSize,
+        true
+      )
     )
     scaledLayoutLayer.show()
     scaledLayoutLayer.noStroke()
@@ -288,8 +366,18 @@ const sketch = p => {
 
   const processEverything = () => {
     Promise.all([
-      imageToTiles(sources.tiles.image, tileLayer, scaledTileLayer),
-      imageToTiles(sources.layout.image, layoutLayer, scaledLayoutLayer)
+      imageToTiles(
+        sources.tiles.image,
+        tileLayer,
+        scaledTileLayer,
+        tileCellSize
+      ),
+      imageToTiles(
+        sources.layout.image,
+        layoutLayer,
+        scaledLayoutLayer,
+        layoutCellSize
+      )
     ]).then(([blockSd, layoutSd]) => {
       sources.tiles = blockSd
       sources.layout = layoutSd
@@ -302,12 +390,16 @@ const sketch = p => {
       targetLayer.save(generateFilename('mosaic-tiles'))
     } else if (p.key === '!') {
       layoutSizeMod = layoutSizeMod === 1 ? 0.5 : 1
-      imageToTiles(sources.layout.image, layoutLayer, scaledLayoutLayer, layoutSizeMod).then(
-        layoutSd => {
-          sources.layout = layoutSd
-          buildMosaic(targetLayer, p)
-        }
-      )
+      imageToTiles(
+        sources.layout.image,
+        layoutLayer,
+        scaledLayoutLayer,
+        layoutCellSize,
+        layoutSizeMod
+      ).then(layoutSd => {
+        sources.layout = layoutSd
+        buildMosaic(targetLayer, p)
+      })
     }
   }
 
@@ -316,6 +408,7 @@ const sketch = p => {
     destinationLayer,
     scaledLayer,
     sourceData,
+    cellSize,
     resizeCanvas = false
   ) {
     if (file.type === 'image') {
@@ -335,14 +428,16 @@ const sketch = p => {
           )
           p.resizeCanvas(newW, newH)
         }
-        imageToTiles(loadedImg, destinationLayer, scaledLayer).then(data => {
-          sourceData.lookups = data.lookups
-          sourceData.cols = data.cols
-          sourceData.rows = data.rows
-          sourceData.image = loadedImg
-          modal.processing = false
-          buildMosaic(targetLayer, p)
-        })
+        imageToTiles(loadedImg, destinationLayer, scaledLayer, cellSize).then(
+          data => {
+            sourceData.lookups = data.lookups
+            sourceData.cols = data.cols // do we need to set, here ???
+            sourceData.rows = data.rows
+            sourceData.image = loadedImg
+            modal.processing = false
+            buildMosaic(targetLayer, p)
+          }
+        )
       })
     }
   }
