@@ -27,19 +27,18 @@ const sketch = p => {
   let layoutLayer
   let scaledTileLayer, scaledLayoutLayer
   let targetLayer
-  // let cellSize = 16
-  let tileCellSize = 16
-  let layoutCellSize = 16
-  let layoutSizeMod = 1
   const modal = {
-    processing: false
+    processing: false,
+    showGrid: false
   }
 
   const sourceData = {
     lookups: [],
     cols: 0,
     rows: 0,
-    image: null
+    image: null,
+    cellSize: 32,
+    ratio: 1
   }
   const sources = {
     tiles: { ...sourceData },
@@ -50,7 +49,7 @@ const sketch = p => {
     // Calculate dimensions maintaining aspect ratio
     let w = width
     let h = height
-
+    let ratio = 1
     if (w > maxDim || h > maxDim) {
       if (w > h) {
         h = (maxDim * h) / w
@@ -60,30 +59,23 @@ const sketch = p => {
         h = maxDim
       }
     }
+    ratio = w / width
 
-    return { width: w, height: h }
+    return { width: w, height: h, ratio }
   }
 
   p.preload = () => {
     sources.tiles.image = p.loadImage('images/ad.apple.pie.pillsbury.jpg')
-    // sources.layout.image = p.loadImage('images/alice.love.full.png')
     sources.layout.image = p.loadImage('images/mona_square.jpeg')
   }
 
-  const imageToTiles = (
-    image,
-    targetLayer,
-    displayLayer,
-    cellSize,
-    sizeMod = 1
-  ) => {
-    const localCellSize = cellSize * sizeMod
+  const processImage = (image, targetLayer, displayLayer, cellSize, ratio) => {
     modal.processing = true
     displayLayer.background(210)
     targetLayer.background(210)
     return new Promise(resolve => {
-      const cols = Math.floor(image.width / localCellSize)
-      const rows = Math.floor(image.height / localCellSize)
+      const cols = Math.floor(image.width / cellSize)
+      const rows = Math.floor(image.height / cellSize)
       const localLs = []
       const smallCtx = p.createGraphics(cols * 2, rows * 2)
       smallCtx.image(image, 0, 0, smallCtx.width, smallCtx.height)
@@ -112,15 +104,17 @@ const sketch = p => {
             localLs.push(quad)
             targetLayer.image(
               image,
-              c * localCellSize,
-              r * localCellSize,
-              localCellSize,
-              localCellSize,
-              c * localCellSize,
-              r * localCellSize,
-              localCellSize,
-              localCellSize
+              c * cellSize,
+              r * cellSize,
+              cellSize,
+              cellSize,
+              c * cellSize,
+              r * cellSize,
+              cellSize,
+              cellSize
             )
+
+            // annotate layer
             displayLayer.image(
               targetLayer,
               0,
@@ -128,6 +122,15 @@ const sketch = p => {
               displayLayer.width,
               displayLayer.height
             )
+
+            if (modal.showGrid) {
+              drawGrid(displayLayer, targetLayer, {
+                cols,
+                rows,
+                cellSize,
+                ratio
+              })
+            }
             displayLayer.fill(50, 150)
             displayLayer.rect(5, displayLayer.height - 30, 100, 20, 5)
             p.textAlign(p.LEFT, p.TOP)
@@ -146,7 +149,9 @@ const sketch = p => {
                 cols,
                 rows,
                 lookups: localLs,
-                image
+                image,
+                cellSize,
+                ratio
               })
             }
           }
@@ -162,6 +167,15 @@ const sketch = p => {
   }
 
   const buildMosaic = (targetLayer, displayLayer) => {
+    const newWidth = sources.layout.cols * sources.layout.cellSize
+    const newHeight = sources.layout.rows * sources.layout.cellSize
+    targetLayer.resizeCanvas(newWidth, newHeight)
+    const { width: newW, height: newH } = getResizeDimensions(
+      { width: newWidth, height: newHeight },
+      600
+    )
+    displayLayer.resizeCanvas(newW, newH)
+
     displayLayer.background(210)
     targetLayer.background(210)
 
@@ -200,14 +214,14 @@ const sketch = p => {
           const tr = Math.floor(minIndex / sources.tiles.cols)
           targetLayer.image(
             sources.tiles.image,
-            c * layoutCellSize * layoutSizeMod,
-            r * layoutCellSize * layoutSizeMod,
-            layoutCellSize * layoutSizeMod,
-            layoutCellSize * layoutSizeMod,
-            tc * tileCellSize,
-            tr * tileCellSize,
-            tileCellSize,
-            tileCellSize
+            c * sources.layout.cellSize,
+            r * sources.layout.cellSize,
+            sources.layout.cellSize,
+            sources.layout.cellSize,
+            tc * sources.tiles.cellSize,
+            tr * sources.tiles.cellSize,
+            sources.tiles.cellSize,
+            sources.tiles.cellSize
           )
 
           displayLayer.image(
@@ -242,20 +256,21 @@ const sketch = p => {
     uiContainer.style('border-radius', '5px')
 
     p.createDiv('Tiles cell size:').parent(uiContainer)
-    const tileCellSlider = p.createSlider(5, 200, tileCellSize, 1)
+    const tileCellSlider = p.createSlider(5, 200, sources.tiles.cellSize, 1)
     tileCellSlider.parent(uiContainer)
     tileCellSlider.input(() => {
       if (modal.processing) {
-        tileCellSlider.value(tileCellSize)
+        tileCellSlider.value(sources.tiles.cellSize)
         return
       }
-      tileCellSize = tileCellSlider.value()
-      console.log('tileCellSize', tileCellSize)
-      imageToTiles(
+      sources.tiles.cellSize = tileCellSlider.value()
+      console.log('tileCellSize', sources.tiles.cellSize)
+      processImage(
         sources.tiles.image,
         tileLayer,
         scaledTileLayer,
-        tileCellSize
+        sources.tiles.cellSize,
+        sources.tiles.ratio
       ).then(blockSd => {
         sources.tiles = blockSd
         buildMosaic(targetLayer, p)
@@ -263,25 +278,26 @@ const sketch = p => {
     })
 
     p.createDiv('Layout cell size:').parent(uiContainer)
-    const layoutCellSlider = p.createSlider(5, 200, layoutCellSize, 1)
+    const layoutCellSlider = p.createSlider(5, 200, sources.layout.cellSize, 1)
     layoutCellSlider.parent(uiContainer)
     layoutCellSlider.input(() => {
       if (modal.processing) {
-        layoutCellSlider.value(layoutCellSize)
+        layoutCellSlider.value(sources.layout.cellSize)
         return
       }
-      layoutCellSize = layoutCellSlider.value()
-      console.log('layoutCellSize', layoutCellSize)
+      sources.layout.cellSize = layoutCellSlider.value()
+      console.log('layoutCellSize', sources.layout.cellSize)
       if (lockCellSizes.checked()) {
-        tileCellSlider.value(layoutCellSize)
-        tileCellSize = layoutCellSize
+        tileCellSlider.value(sources.layout.cellSize)
+        sources.tiles.cellSize = sources.layout.cellSize
         processEverything()
       } else {
-        imageToTiles(
+        processImage(
           sources.layout.image,
           layoutLayer,
           scaledLayoutLayer,
-          layoutCellSize
+          sources.layout.cellSize,
+          sources.layout.ratio
         ).then(layoutSd => {
           sources.layout = layoutSd
           buildMosaic(targetLayer, p)
@@ -289,14 +305,13 @@ const sketch = p => {
       }
     })
 
-    // TODO: uhm, not working yet
     p.createDiv('Lock cell sizes').parent(uiContainer)
     const lockCellSizes = p.createCheckbox('', false)
     lockCellSizes.parent(uiContainer)
     lockCellSizes.changed(() => {
       if (lockCellSizes.checked()) {
-        tileCellSlider.value(layoutCellSize)
-        tileCellSize = layoutCellSize
+        tileCellSlider.value(sources.layout.cellSize)
+        sources.tiles.cellSize = sources.layout.cellSize
         tileCellSlider.attribute('disabled', '')
       } else {
         tileCellSlider.removeAttribute('disabled')
@@ -328,22 +343,34 @@ const sketch = p => {
     )
 
     const scaledTileCanvas = document.getElementById('tile-layer')
-    let { width: newWidth, height: newHeight } = getResizeDimensions(
-      sources.tiles.image,
-      400
-    )
+    let {
+      width: newWidth,
+      height: newHeight,
+      ratio
+    } = getResizeDimensions(sources.tiles.image, 400)
+    sources.tiles.ratio = ratio
 
     scaledTileLayer = p.createGraphics(newWidth, newHeight, scaledTileCanvas)
     scaledTileLayer.drop(file =>
-      handleFile(file, tileLayer, scaledTileLayer, sources.tiles, tileCellSize)
+      handleFile(
+        file,
+        tileLayer,
+        scaledTileLayer,
+        sources.tiles,
+        sources.tiles.cellSize
+      )
     )
 
     scaledTileLayer.show()
     scaledTileLayer.noStroke()
 
     const scaledLayoutCanvas = document.getElementById('layout-layer')
-    let { width: newLayoutWidth, height: newLayoutHeight } =
-      getResizeDimensions(sources.layout.image, 400)
+    let {
+      width: newLayoutWidth,
+      height: newLayoutHeight,
+      ratio: ratioL
+    } = getResizeDimensions(sources.layout.image, 400)
+    sources.layout.ratio = ratioL
     scaledLayoutLayer = p.createGraphics(
       newLayoutWidth,
       newLayoutHeight,
@@ -355,7 +382,7 @@ const sketch = p => {
         layoutLayer,
         scaledLayoutLayer,
         sources.layout,
-        layoutCellSize,
+        sources.layout.cellSize,
         true
       )
     )
@@ -368,17 +395,19 @@ const sketch = p => {
 
   const processEverything = () => {
     Promise.all([
-      imageToTiles(
+      processImage(
         sources.tiles.image,
         tileLayer,
         scaledTileLayer,
-        tileCellSize
+        sources.tiles.cellSize,
+        sources.tiles.ratio
       ),
-      imageToTiles(
+      processImage(
         sources.layout.image,
         layoutLayer,
         scaledLayoutLayer,
-        layoutCellSize
+        sources.layout.cellSize,
+        sources.layout.ratio
       )
     ]).then(([blockSd, layoutSd]) => {
       sources.tiles = blockSd
@@ -388,21 +417,59 @@ const sketch = p => {
   }
 
   p.keyPressed = () => {
-    if (p.key === 'S') {
+    if (p.key === 'g') {
+      modal.showGrid = !modal.showGrid
+      if (modal.showGrid) {
+        drawGrid(scaledTileLayer, tileLayer, sources.tiles)
+        drawGrid(scaledLayoutLayer, layoutLayer, sources.layout)
+      } else {
+        scaledTileLayer.image(
+          tileLayer,
+          0,
+          0,
+          scaledTileLayer.width,
+          scaledTileLayer.height
+        )
+        scaledLayoutLayer.image(
+          layoutLayer,
+          0,
+          0,
+          scaledLayoutLayer.width,
+          scaledLayoutLayer.height
+        )
+      }
+    } else if (p.key === 'S') {
       targetLayer.save(generateFilename('mosaic-tiles'))
-    } else if (p.key === '!') {
-      layoutSizeMod = layoutSizeMod === 1 ? 0.5 : 1
-      imageToTiles(
-        sources.layout.image,
-        layoutLayer,
-        scaledLayoutLayer,
-        layoutCellSize,
-        layoutSizeMod
-      ).then(layoutSd => {
-        sources.layout = layoutSd
-        buildMosaic(targetLayer, p)
-      })
     }
+  }
+
+  function drawGrid (displayLayer, sourceLayer, sourceData) {
+    displayLayer.image(
+      sourceLayer,
+      0,
+      0,
+      displayLayer.width,
+      displayLayer.height
+    )
+    displayLayer.stroke(0)
+    displayLayer.strokeWeight(1)
+    for (let i = 1; i <= sourceData.cols; i++) {
+      displayLayer.line(
+        i * sourceData.cellSize * sourceData.ratio,
+        0,
+        i * sourceData.cellSize * sourceData.ratio,
+        sourceData.rows * sourceData.cellSize * sourceData.ratio
+      )
+    }
+    for (let i = 1; i <= sourceData.rows; i++) {
+      displayLayer.line(
+        0,
+        i * sourceData.cellSize * sourceData.ratio,
+        sourceData.cols * sourceData.cellSize * sourceData.ratio,
+        i * sourceData.cellSize * sourceData.ratio
+      )
+    }
+    displayLayer.noStroke()
   }
 
   function handleFile (
@@ -417,10 +484,11 @@ const sketch = p => {
       modal.processing = true
       p.loadImage(file.data, loadedImg => {
         destinationLayer.resizeCanvas(loadedImg.width, loadedImg.height)
-        const { width: newWidth, height: newHeight } = getResizeDimensions(
-          loadedImg,
-          300
-        )
+        const {
+          width: newWidth,
+          height: newHeight,
+          ratio
+        } = getResizeDimensions(loadedImg, 300)
         scaledLayer.resizeCanvas(newWidth, newHeight)
         if (resizeCanvas) {
           targetLayer.resizeCanvas(loadedImg.width, loadedImg.height)
@@ -430,16 +498,17 @@ const sketch = p => {
           )
           p.resizeCanvas(newW, newH)
         }
-        imageToTiles(loadedImg, destinationLayer, scaledLayer, cellSize).then(
-          data => {
-            sourceData.lookups = data.lookups
-            sourceData.cols = data.cols // do we need to set, here ???
-            sourceData.rows = data.rows
-            sourceData.image = loadedImg
-            modal.processing = false
-            buildMosaic(targetLayer, p)
-          }
-        )
+        processImage(
+          loadedImg,
+          destinationLayer,
+          scaledLayer,
+          cellSize,
+          ratio
+        ).then(data => {
+          sourceData = data
+          modal.processing = false
+          buildMosaic(targetLayer, p)
+        })
       })
     }
   }
