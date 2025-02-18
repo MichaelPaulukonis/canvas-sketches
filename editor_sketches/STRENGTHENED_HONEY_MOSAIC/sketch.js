@@ -1,4 +1,10 @@
-// based on (translatef from) https://github.com/constraint-systems/mosaic
+// based on (translated from) https://github.com/constraint-systems/mosaic
+// NOTES:
+/**
+ - https://estebanhufstedler.com/2020/06/08/rearrange-a-picture-into-another/
+ - https://estebanhufstedler.com/2020/06/09/photomosaics-with-repetition/
+
+**/
 
 const timestamp = () => {
   const d = new Date()
@@ -60,7 +66,8 @@ const sketch = p => {
 
   p.preload = () => {
     sources.tiles.image = p.loadImage('images/ad.apple.pie.pillsbury.jpg')
-    sources.layout.image = p.loadImage('images/alice.love.full.png')
+    // sources.layout.image = p.loadImage('images/alice.love.full.png')
+    sources.layout.image = p.loadImage('images/mona_square.jpeg')
   }
 
   const imageToTiles = (
@@ -75,12 +82,11 @@ const sketch = p => {
     displayLayer.background(210)
     targetLayer.background(210)
     return new Promise(resolve => {
-      const cols = Math.round(image.width / localCellSize)
-      const rows = Math.round(image.height / localCellSize)
+      const cols = Math.floor(image.width / localCellSize)
+      const rows = Math.floor(image.height / localCellSize)
       const localLs = []
       const smallCtx = p.createGraphics(cols * 2, rows * 2)
       smallCtx.image(image, 0, 0, smallCtx.width, smallCtx.height)
-      console.log(`smallContext: ${smallCtx.width} x ${smallCtx.height}`)
 
       const cells = Array(cols * rows)
         .fill(0)
@@ -236,7 +242,7 @@ const sketch = p => {
     uiContainer.style('border-radius', '5px')
 
     p.createDiv('Tiles cell size:').parent(uiContainer)
-    const tileCellSlider = p.createSlider(5, 50, tileCellSize, 1)
+    const tileCellSlider = p.createSlider(5, 200, tileCellSize, 1)
     tileCellSlider.parent(uiContainer)
     tileCellSlider.input(() => {
       if (modal.processing) {
@@ -244,6 +250,7 @@ const sketch = p => {
         return
       }
       tileCellSize = tileCellSlider.value()
+      console.log('tileCellSize', tileCellSize)
       imageToTiles(
         sources.tiles.image,
         tileLayer,
@@ -256,7 +263,7 @@ const sketch = p => {
     })
 
     p.createDiv('Layout cell size:').parent(uiContainer)
-    const layoutCellSlider = p.createSlider(5, 50, layoutCellSize, 1)
+    const layoutCellSlider = p.createSlider(5, 200, layoutCellSize, 1)
     layoutCellSlider.parent(uiContainer)
     layoutCellSlider.input(() => {
       if (modal.processing) {
@@ -264,15 +271,22 @@ const sketch = p => {
         return
       }
       layoutCellSize = layoutCellSlider.value()
-      imageToTiles(
-        sources.layout.image,
-        layoutLayer,
-        scaledLayoutLayer,
-        layoutCellSize
-      ).then(layoutSd => {
-        sources.layout = layoutSd
-        buildMosaic(targetLayer, p)
-      })
+      console.log('layoutCellSize', layoutCellSize)
+      if (lockCellSizes.checked()) {
+        tileCellSlider.value(layoutCellSize)
+        tileCellSize = layoutCellSize
+        processEverything()
+      } else {
+        imageToTiles(
+          sources.layout.image,
+          layoutLayer,
+          scaledLayoutLayer,
+          layoutCellSize
+        ).then(layoutSd => {
+          sources.layout = layoutSd
+          buildMosaic(targetLayer, p)
+        })
+      }
     })
 
     // TODO: uhm, not working yet
@@ -295,18 +309,6 @@ const sketch = p => {
     const { width, height } = getResizeDimensions(sources.layout.image)
     p.createCanvas(width, height, mainCanvas)
     setupUI()
-    // const slider = p.createSlider(5, 50, cellSize, 1)
-    // slider.position(10, p.height - 30)
-    // slider.style('width', '200px')
-    // slider.attribute('title', 'Cell Size')
-    // slider.input(() => {
-    //   if (modal.processing) {
-    //     slider.value(cellSize)
-    //     return
-    //   }
-    //   cellSize = slider.value()
-    //   processEverything()
-    // })
 
     targetLayer = p.createGraphics(
       sources.layout.image.width,
