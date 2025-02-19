@@ -29,7 +29,9 @@ const sketch = p => {
   let targetLayer
   const modal = {
     processing: false,
-    showGrid: false
+    showGrid: false,
+    mouseOverTiles: false,
+    mouseOverLayout: false
   }
 
   const sourceData = {
@@ -69,6 +71,7 @@ const sketch = p => {
     sources.layout.image = p.loadImage('images/mona_square.jpeg')
   }
 
+  // we can call this twice and it works simultaneously ugh
   const processImage = (image, targetLayer, displayLayer, cellSize, ratio) => {
     modal.processing = true
     displayLayer.background(210)
@@ -114,7 +117,6 @@ const sketch = p => {
               cellSize
             )
 
-            // annotate layer
             annotateLayer(
               displayLayer,
               targetLayer,
@@ -246,17 +248,7 @@ const sketch = p => {
         return
       }
       sources.tiles.cellSize = tileCellSlider.value()
-      console.log('tileCellSize', sources.tiles.cellSize)
-      processImage(
-        sources.tiles.image,
-        tileLayer,
-        scaledTileLayer,
-        sources.tiles.cellSize,
-        sources.tiles.ratio
-      ).then(blockSd => {
-        sources.tiles = blockSd
-        buildMosaic(targetLayer, p)
-      })
+      processTiles()
     })
 
     p.createDiv('Layout cell size:').parent(uiContainer)
@@ -268,22 +260,12 @@ const sketch = p => {
         return
       }
       sources.layout.cellSize = layoutCellSlider.value()
-      console.log('layoutCellSize', sources.layout.cellSize)
       if (lockCellSizes.checked()) {
         tileCellSlider.value(sources.layout.cellSize)
         sources.tiles.cellSize = sources.layout.cellSize
         processEverything()
       } else {
-        processImage(
-          sources.layout.image,
-          layoutLayer,
-          scaledLayoutLayer,
-          sources.layout.cellSize,
-          sources.layout.ratio
-        ).then(layoutSd => {
-          sources.layout = layoutSd
-          buildMosaic(targetLayer, p)
-        })
+        processLayout()
       }
     })
 
@@ -345,6 +327,12 @@ const sketch = p => {
 
     scaledTileLayer.show()
     scaledTileLayer.noStroke()
+    scaledTileCanvas.addEventListener('mouseover', () => {
+      modal.mouseOverTiles = true
+    })
+    scaledTileCanvas.addEventListener('mouseout', () => {
+      modal.mouseOverTiles = false
+    })
 
     const scaledLayoutCanvas = document.getElementById('layout-layer')
     let {
@@ -368,11 +356,43 @@ const sketch = p => {
         true
       )
     )
+    scaledLayoutCanvas.addEventListener('mouseover', () => {
+      modal.mouseOverLayout = true
+    })
+    scaledLayoutCanvas.addEventListener('mouseout', () => {
+      modal.mouseOverLayout = false
+    })
     scaledLayoutLayer.show()
     scaledLayoutLayer.noStroke()
 
     p.background(220)
     processEverything()
+  }
+
+  const processTiles = () => {
+    processImage(
+      sources.tiles.image,
+      tileLayer,
+      scaledTileLayer,
+      sources.tiles.cellSize,
+      sources.tiles.ratio
+    ).then(blockSd => {
+      sources.tiles = blockSd
+      buildMosaic(targetLayer, p)
+    })
+  }
+
+  const processLayout = () => {
+    processImage(
+      sources.layout.image,
+      layoutLayer,
+      scaledLayoutLayer,
+      sources.layout.cellSize,
+      sources.layout.ratio
+    ).then(layoutSd => {
+      sources.layout = layoutSd
+      buildMosaic(targetLayer, p)
+    })
   }
 
   const processEverything = () => {
@@ -402,8 +422,22 @@ const sketch = p => {
     if (p.key === 'g') {
       modal.showGrid = !modal.showGrid
       if (modal.showGrid) {
-        annotateLayer(scaledTileLayer, tileLayer, sources.tiles.cols, sources.tiles.rows, sources.tiles.cellSize, sources.tiles.ratio)
-        annotateLayer(scaledLayoutLayer, layoutLayer, sources.layout.cols, sources.layout.rows, sources.layout.cellSize, sources.layout.ratio)
+        annotateLayer(
+          scaledTileLayer,
+          tileLayer,
+          sources.tiles.cols,
+          sources.tiles.rows,
+          sources.tiles.cellSize,
+          sources.tiles.ratio
+        )
+        annotateLayer(
+          scaledLayoutLayer,
+          layoutLayer,
+          sources.layout.cols,
+          sources.layout.rows,
+          sources.layout.cellSize,
+          sources.layout.ratio
+        )
       } else {
         scaledTileLayer.image(
           tileLayer,
@@ -422,6 +456,23 @@ const sketch = p => {
       }
     } else if (p.key === 'S') {
       targetLayer.save(generateFilename('mosaic-tiles'))
+    } else if (p.key === '+') {
+      // TODO: guard against cellSize < 5
+      if (modal.mouseOverTiles) {
+        sources.tiles.cellSize += 1
+        processTiles()
+      } else if (modal.mouseOverLayout) {
+        sources.layout.cellSize += 1
+        processTiles()
+      }
+    } else if (p.key === '-') {
+      if (modal.mouseOverTiles) {
+        sources.tiles.cellSize -= 1
+        processLayout()
+      } else if (modal.mouseOverLayout) {
+        sources.layout.cellSize -= 1
+        processLayout()
+      }
     }
   }
 
@@ -489,12 +540,22 @@ const sketch = p => {
     const boxHeight = uiText.length * 20 + 20
 
     displayLayer.fill(50, 150)
-    displayLayer.rect(5, displayLayer.height - boxHeight - 5, boxWidth, boxHeight, 5)
+    displayLayer.rect(
+      5,
+      displayLayer.height - boxHeight - 5,
+      boxWidth,
+      boxHeight,
+      5
+    )
     displayLayer.fill(255)
     displayLayer.textSize(16)
     displayLayer.textAlign(displayLayer.LEFT, displayLayer.TOP)
     uiText.forEach((text, index) => {
-      displayLayer.text(text, 10, displayLayer.height - boxHeight + 10 + index * 20)
+      displayLayer.text(
+        text,
+        10,
+        displayLayer.height - boxHeight + 10 + index * 20
+      )
     })
   }
 
@@ -509,8 +570,8 @@ const sketch = p => {
     if (file.type === 'image') {
       modal.processing = true
       p.loadImage(file.data, loadedImg => {
-        // const newLoadedSize = getResizeDimensions(loadedImg, 3000)
-        // loadedImg.resize(newLoadedSize.width, newLoadedSize.height)
+        const newLoadedSize = getResizeDimensions(loadedImg, 3000)
+        loadedImg.resize(newLoadedSize.width, newLoadedSize.height)
         destinationLayer.resizeCanvas(loadedImg.width, loadedImg.height)
         const {
           width: newWidth,
