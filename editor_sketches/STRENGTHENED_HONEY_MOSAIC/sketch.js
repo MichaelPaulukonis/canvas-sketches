@@ -115,31 +115,13 @@ const sketch = p => {
             )
 
             // annotate layer
-            displayLayer.image(
+            annotateLayer(
+              displayLayer,
               targetLayer,
-              0,
-              0,
-              displayLayer.width,
-              displayLayer.height
-            )
-
-            if (modal.showGrid) {
-              drawGrid(displayLayer, targetLayer, {
-                cols,
-                rows,
-                cellSize,
-                ratio
-              })
-            }
-            displayLayer.fill(50, 150)
-            displayLayer.rect(5, displayLayer.height - 30, 100, 20, 5)
-            p.textAlign(p.LEFT, p.TOP)
-            displayLayer.fill(255)
-            displayLayer.textSize(16)
-            displayLayer.text(
-              `${image.width} x ${image.height}`,
-              10,
-              displayLayer.height - 15
+              cols,
+              rows,
+              cellSize,
+              ratio
             )
 
             if (cells.length === 0) {
@@ -420,8 +402,8 @@ const sketch = p => {
     if (p.key === 'g') {
       modal.showGrid = !modal.showGrid
       if (modal.showGrid) {
-        drawGrid(scaledTileLayer, tileLayer, sources.tiles)
-        drawGrid(scaledLayoutLayer, layoutLayer, sources.layout)
+        annotateLayer(scaledTileLayer, tileLayer, sources.tiles.cols, sources.tiles.rows, sources.tiles.cellSize, sources.tiles.ratio)
+        annotateLayer(scaledLayoutLayer, layoutLayer, sources.layout.cols, sources.layout.rows, sources.layout.cellSize, sources.layout.ratio)
       } else {
         scaledTileLayer.image(
           tileLayer,
@@ -472,6 +454,50 @@ const sketch = p => {
     displayLayer.noStroke()
   }
 
+  function annotateLayer (
+    displayLayer,
+    targetLayer,
+    cols,
+    rows,
+    cellSize,
+    ratio
+  ) {
+    displayLayer.image(
+      targetLayer,
+      0,
+      0,
+      displayLayer.width,
+      displayLayer.height
+    )
+
+    if (modal.showGrid) {
+      drawGrid(displayLayer, targetLayer, {
+        cols,
+        rows,
+        cellSize,
+        ratio
+      })
+    }
+
+    const uiText = [
+      `Size: ${targetLayer.width} x ${targetLayer.height}`,
+      `Cols: ${cols}`,
+      `Rows: ${rows}`,
+      `Cell size: ${cellSize}`
+    ]
+    const boxWidth = 200
+    const boxHeight = uiText.length * 20 + 20
+
+    displayLayer.fill(50, 150)
+    displayLayer.rect(5, displayLayer.height - boxHeight - 5, boxWidth, boxHeight, 5)
+    displayLayer.fill(255)
+    displayLayer.textSize(16)
+    displayLayer.textAlign(displayLayer.LEFT, displayLayer.TOP)
+    uiText.forEach((text, index) => {
+      displayLayer.text(text, 10, displayLayer.height - boxHeight + 10 + index * 20)
+    })
+  }
+
   function handleFile (
     file,
     destinationLayer,
@@ -483,6 +509,8 @@ const sketch = p => {
     if (file.type === 'image') {
       modal.processing = true
       p.loadImage(file.data, loadedImg => {
+        // const newLoadedSize = getResizeDimensions(loadedImg, 3000)
+        // loadedImg.resize(newLoadedSize.width, newLoadedSize.height)
         destinationLayer.resizeCanvas(loadedImg.width, loadedImg.height)
         const {
           width: newWidth,
@@ -505,7 +533,12 @@ const sketch = p => {
           cellSize,
           ratio
         ).then(data => {
-          sourceData = data
+          sourceData.ratio = data.ratio
+          sourceData.image = loadedImg
+          sourceData.rows = data.rows
+          sourceData.cols = data.cols
+          sourceData.lookups = data.lookups
+          sourceData.cellSize = data.cellSize
           modal.processing = false
           buildMosaic(targetLayer, p)
         })
