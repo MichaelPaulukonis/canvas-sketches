@@ -29,53 +29,39 @@ class Block {
     ) {
       if (!sounds.mute) sounds.blockHit.play()
 
-      // Determine which side was hit
-      const centerX = this.x + this.size / 2
-      const centerY = this.y + this.size / 2
-      const dx = ball.x - centerX
-      const dy = ball.y - centerY
+      // Calculate centers (using ball's center)
+      const ballCenterX = ball.x + ball.size / 2
+      const ballCenterY = ball.y + ball.size / 2
+      const blockCenterX = this.x + this.size / 2 // Use 'block' or 'this' as appropriate
+      const blockCenterY = this.y + this.size / 2
 
-      // Calculate the angle of approach
-      const angle = Math.atan2(dy, dx)
-      const approachAngle = Math.abs(angle)
+      // Vector from block center to ball center
+      const vecX = ballCenterX - blockCenterX
+      const vecY = ballCenterY - blockCenterY
 
-      if (DEBUG) {
-        console.log(`approachAngle: ${approachAngle} dy: ${dy} dx: ${dx}`)
-      }
+      // Half-widths for overlap calculation
+      const halfTotalWidth = (ball.size + this.size) / 2
+      const halfTotalHeight = (ball.size + this.size) / 2
 
-      const verticalThreshold = Math.PI / 12 // 15 degrees in radians
-      const snapThreshold = 0.01 // Very small threshold for angle snapping
-      const tolerance = 0.0001 // Small value to account for floating-point errors
+      // Calculate overlaps
+      const overlapX = halfTotalWidth - Math.abs(vecX)
+      const overlapY = halfTotalHeight - Math.abs(vecY)
 
-      // Determine the dominant collision axis
-      if (Math.abs(dx) > Math.abs(dy)) {
-        // Horizontal collision (left or right side)
-        if (
-          Math.abs(approachAngle) < snapThreshold ||
-          Math.abs(approachAngle - Math.PI) < snapThreshold
-        ) {
-          ball.dy = 0
+      // Determine collision axis based on MINIMUM overlap
+      if (overlapX > 0 && overlapY > 0) {
+        // Ensure collision exists
+        if (overlapX < overlapY) {
+          // <<< Collision is primarily Horizontal >>>
+          // Hit was on left/right side because less overlap needed horizontally to separate
           ball.dx *= -1
-        } else if (
-          Math.abs(approachAngle) < tolerance ||
-          Math.abs(approachAngle - Math.PI) < tolerance
-        ) {
-          ball.dx *= -1
+          // Optional: Resolve penetration
+          ball.x += Math.sign(vecX) * overlapX
         } else {
-          ball.dx *= -1
-        }
-      } else {
-        // Vertical collision (top or bottom side)
-        if (Math.abs(approachAngle - Math.PI / 2) < snapThreshold) {
-          ball.dx = 0
-          ball.dy *= -1 // Snap to perfect vertical reflection
-        } else if (
-          Math.abs(approachAngle - Math.PI / 2) <
-          verticalThreshold + tolerance
-        ) {
-          ball.dy *= -1 // Normal vertical reflection
-        } else {
-          ball.dy *= -1
+          // <<< Collision is primarily Vertical >>>
+          // Hit was on top/bottom side because less (or equal) overlap needed vertically
+          ball.dy *= -1 // <<< This will now correctly reverse vertical direction
+          // Optional: Resolve penetration
+          ball.y += Math.sign(vecY) * overlapY
         }
       }
 
