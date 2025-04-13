@@ -230,7 +230,7 @@ let DEBUG = false
 const desiredBlockSize = 6; // Or 4, or whatever you want
 const gap = 1;              // Gap between blocks
 const marginTop = 20;       // Space above grid
-const marginBottom = 100;     // Space below grid (adjust based on paddle/score area)
+const marginBottom = 75;     // Space below grid (adjust based on paddle/score area)
 const marginHorizontal = 20;  // Space on left/right sides
 
 // --- Calculated Grid Properties (will be set in createDynamicBlocks) ---
@@ -274,62 +274,107 @@ function preload () {
 }
 
 function processImage() {
-  if (!sourceImage || blocks.length === 0 || gridCols === 0 || gridRows === 0) {
-      console.warn("Cannot process image: Image not loaded or grid not created.");
-      return; // Skip if image not loaded or grid is empty
+  // Basic checks
+  if (!sourceImage || blocks.length === 0 || gridCols <= 0 || gridRows <= 0) {
+    console.warn("Cannot process image: Image not loaded or grid not created/invalid.");
+    // Optionally fill blocks with a default color if needed
+    for (let block of blocks) {
+        block.color = color(128); // Default gray
+    }
+    return;
   }
 
   sourceImage.loadPixels();
-
   if (!sourceImage.pixels || sourceImage.pixels.length === 0) {
-     console.error("Image pixel data is not available.");
-     return;
+    console.error("Image pixel data is not available after loadPixels().");
+     for (let block of blocks) {
+        block.color = color(128); // Default gray
+    }
+    return;
   }
 
-  // For each block in our grid, sample the corresponding pixel
+  // Calculate aspect ratios
+  const gridAspectRatio = gridCols / gridRows;
+  const imageAspectRatio = sourceImage.width / sourceImage.height;
+
+  let sampleX = 0, sampleY = 0;
+  let sampleWidth = sourceImage.width;
+  let sampleHeight = sourceImage.height;
+
+  // Determine the cropping region within the source image
+  if (gridAspectRatio > imageAspectRatio) {
+    // Grid is wider than the image aspect ratio -> Crop image top/bottom
+    sampleWidth = sourceImage.width;
+    // Calculate the height needed in the image to match the grid's aspect ratio
+    sampleHeight = sourceImage.width / gridAspectRatio;
+    sampleX = 0;
+    // Center the sampling region vertically
+    sampleY = (sourceImage.height - sampleHeight) / 2;
+    console.log(`Cropping image vertically. Sampling Height: ${sampleHeight}`);
+
+  } else if (gridAspectRatio < imageAspectRatio) {
+    // Grid is taller (narrower) than the image aspect ratio -> Crop image left/right
+    sampleHeight = sourceImage.height;
+    // Calculate the width needed in the image to match the grid's aspect ratio
+    sampleWidth = sourceImage.height * gridAspectRatio;
+    sampleY = 0;
+    // Center the sampling region horizontally
+    sampleX = (sourceImage.width - sampleWidth) / 2;
+    console.log(`Cropping image horizontally. Sampling Width: ${sampleWidth}`);
+  }
+  // Else: Aspect ratios match (or are close enough), use the whole image (sampleX/Y=0, sampleWidth/Height=full)
+
+  // Make sure calculated sample dimensions are not negative or zero if inputs were weird
+  sampleWidth = max(1, sampleWidth);
+  sampleHeight = max(1, sampleHeight);
+
+
+  // --- Process each block ---
+  const blockAndGapWidth = desiredBlockSize + gap;
+  const blockAndGapHeight = desiredBlockSize + gap;
+
   for (let i = 0; i < blocks.length; i++) {
     let block = blocks[i];
 
     // Calculate the COLUMN and ROW index of this block within our dynamic grid
-    // Use the actual blockAndGap size used during creation
-    const blockAndGapWidth = desiredBlockSize + gap;
-    const blockAndGapHeight = desiredBlockSize + gap;
-
-    // Calculate col/row index relative to the grid start, handle potential floating point issues
     let col = Math.round((block.x - gridStartX) / blockAndGapWidth);
     let row = Math.round((block.y - gridStartY) / blockAndGapHeight);
 
-     // Clamp values just in case rounding goes slightly out of bounds
+    // Clamp col/row index to valid grid range
     col = constrain(col, 0, gridCols - 1);
     row = constrain(row, 0, gridRows - 1);
 
-    // Get pixel color from source image, mapping block grid index to image coordinates
-    // Map the block's column/row index (0 to gridCols-1) to the image's width/height
-    let imgX = Math.floor(map(col, 0, gridCols - 1, 0, sourceImage.width - 1));
-    let imgY = Math.floor(map(row, 0, gridRows - 1, 0, sourceImage.height - 1));
+    // Map the block's column/row index to the *sampling region* coordinates within the image
+    // Use max(1, ...) for range size to prevent division by zero in map if grid is 1xN or Nx1
+    let imgX = map(col, 0, gridCols - 1, sampleX, sampleX + sampleWidth -1 ); // Map col to sampling X range
+    let imgY = map(row, 0, gridRows - 1, sampleY, sampleY + sampleHeight -1 ); // Map row to sampling Y range
 
-    // Ensure mapped coordinates are within image bounds
+    // Floor to get integer pixel coordinates
+    imgX = Math.floor(imgX);
+    imgY = Math.floor(imgY);
+
+    // Final constraint to ensure coordinates are within the actual image bounds
+    // (handles potential floating point inaccuracies at the edges of the map)
     imgX = constrain(imgX, 0, sourceImage.width - 1);
     imgY = constrain(imgY, 0, sourceImage.height - 1);
 
+    // Calculate pixel array index
+    let index = 4 * (imgY * sourceImage.width + imgX);
 
-    let index = 4 * (imgY * sourceImage.width + imgX); // Calculate pixel index
-
-    // Check if index is valid before accessing pixels
+    // Get and set color (with safety check)
     if (index >= 0 && index + 3 < sourceImage.pixels.length) {
-        // Store color in block
-        block.color = color(
-          sourceImage.pixels[index],     // R
-          sourceImage.pixels[index + 1], // G
-          sourceImage.pixels[index + 2], // B
-          sourceImage.pixels[index + 3]  // A
-        );
+      block.color = color(
+        sourceImage.pixels[index],     // R
+        sourceImage.pixels[index + 1], // G
+        sourceImage.pixels[index + 2], // B
+        sourceImage.pixels[index + 3]  // A
+      );
     } else {
-        console.warn(`Invalid pixel index calculated: ${index} for block at col ${col}, row ${row} (mapped to img ${imgX}, ${imgY})`);
-        block.color = color(128); // Default to gray if index is bad
+      console.warn(`Invalid pixel index: ${index} for block col ${col}, row ${row} (img ${imgX}, ${imgY})`);
+      block.color = color(128); // Fallback color
     }
   }
-   console.log("Image processed onto blocks.");
+  console.log("Image processed onto blocks (with cropping).");
 }
 
 function createDynamicBlocks() {
