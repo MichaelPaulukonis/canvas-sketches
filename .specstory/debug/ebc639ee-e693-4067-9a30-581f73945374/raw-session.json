@@ -1,0 +1,80 @@
+{
+  "host": "",
+  "sessionId": "ebc639ee-e693-4067-9a30-581f73945374",
+  "customTitle": "Checking if the mouse is over pGraphics objects in p5.js",
+  "version": 3,
+  "requesterUsername": "MichaelPaulukonis",
+  "responderUsername": "GitHub Copilot",
+  "creationDate": 1739934311897,
+  "lastMessageDate": 1739934646242,
+  "initialLocation": "panel",
+  "isImported": false,
+  "requests": [
+    {
+      "requestId": "",
+      "timestamp": 0,
+      "message": {
+        "text": "I have a p5js sketch with a main canvas, and additional pgraphics objects that are visible in the page. How can I check if the mouse is over one of the pGraphics objects?",
+        "parts": [
+          {
+            "kind": "text"
+          }
+        ]
+      },
+      "response": [
+        {
+          "value": "To check if the mouse is over one of the `pGraphics` objects in a p5.js sketch, you can compare the mouse coordinates with the position and dimensions of the `pGraphics` objects. Here's a step-by-step plan:\n\n1. Define the position and dimensions of each `pGraphics` object.\n2. Create a function to check if the mouse is within the bounds of a `pGraphics` object.\n3. Use this function in the `draw` or `mouseMoved` function to check if the mouse is over any `pGraphics` object.\n\nHere's an example implementation:\n\n```javascript\nlet pg1, pg2;\nlet pg1X = 50, pg1Y = 50, pg1Width = 200, pg1Height = 200;\nlet pg2X = 300, pg2Y = 50, pg2Width = 200, pg2Height = 200;\n\nfunction setup() {\n  createCanvas(600, 400);\n  pg1 = createGraphics(pg1Width, pg1Height);\n  pg2 = createGraphics(pg2Width, pg2Height);\n}\n\nfunction draw() {\n  background(220);\n\n  // Draw pGraphics objects\n  pg1.background(100);\n  pg2.background(150);\n  image(pg1, pg1X, pg1Y);\n  image(pg2, pg2X, pg2Y);\n\n  // Check if mouse is over any pGraphics object\n  if (isMouseOver(pg1X, pg1Y, pg1Width, pg1Height)) {\n    fill(255, 0, 0);\n    text('Mouse over pg1', 10, height - 20);\n  } else if (isMouseOver(pg2X, pg2Y, pg2Width, pg2Height)) {\n    fill(255, 0, 0);\n    text('Mouse over pg2', 10, height - 20);\n  } else {\n    fill(0);\n    text('Mouse not over any pGraphics', 10, height - 20);\n  }\n}\n\nfunction isMouseOver(x, y, w, h) {\n  return mouseX \u003e x \u0026\u0026 mouseX \u003c x + w \u0026\u0026 mouseY \u003e y \u0026\u0026 mouseY \u003c y + h;\n}\n```\n\nIn this example:\n- `pg1` and `pg2` are `pGraphics` objects.\n- `pg1X`, `pg1Y`, `pg1Width`, `pg1Height` define the position and dimensions of `pg1`.\n- `pg2X`, `pg2Y`, `pg2Width`, `pg2Height` define the position and dimensions of `pg2`.\n- The `isMouseOver` function checks if the mouse is within the bounds of a given `pGraphics` object.\n- The `draw` function uses `isMouseOver` to display a message indicating whether the mouse is over any `pGraphics` object.",
+          "isTrusted": {
+            "enabledCommands": [
+              "_github.copilot.openRelativePath",
+              "_github.copilot.openSymbolInFile",
+              "_github.copilot.openSymbolFromReferences"
+            ]
+          },
+          "supportThemeIcons": false,
+          "supportHtml": false
+        }
+      ],
+      "result": {
+        "metadata": {},
+        "timings": {
+          "firstProgress": 657,
+          "totalElapsed": 6174
+        }
+      }
+    },
+    {
+      "requestId": "",
+      "timestamp": 0,
+      "message": {
+        "text": "That doesn't line up with how my sketch works - the 2 graphics objects are displayed on the page, but not within the main canvas object. How would a vanilla-js script check for mouse-over events on a given object?",
+        "parts": [
+          {
+            "kind": "text"
+          }
+        ]
+      },
+      "response": [
+        {
+          "value": "To check for mouse-over events on a given HTML element using vanilla JavaScript, you can use event listeners. Here's a step-by-step plan:\n\n1. Select the HTML elements you want to check for mouse-over events.\n2. Add event listeners for `mouseover` and `mouseout` events to these elements.\n3. Define the event handler functions to handle the mouse-over and mouse-out events.\n\nHere's an example implementation:\n\n```html\n\u003c!DOCTYPE html\u003e\n\u003chtml lang=\"en\"\u003e\n\u003chead\u003e\n  \u003cmeta charset=\"UTF-8\"\u003e\n  \u003cmeta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"\u003e\n  \u003ctitle\u003eMouse Over Example\u003c/title\u003e\n  \u003cstyle\u003e\n    .graphics {\n      width: 200px;\n      height: 200px;\n      margin: 20px;\n      display: inline-block;\n    }\n    #pg1 {\n      background-color: lightblue;\n    }\n    #pg2 {\n      background-color: lightgreen;\n    }\n  \u003c/style\u003e\n\u003c/head\u003e\n\u003cbody\u003e\n  \u003cdiv id=\"pg1\" class=\"graphics\"\u003e\u003c/div\u003e\n  \u003cdiv id=\"pg2\" class=\"graphics\"\u003e\u003c/div\u003e\n  \u003cp id=\"status\"\u003eMouse not over any graphics\u003c/p\u003e\n\n  \u003cscript\u003e\n    const pg1 = document.getElementById('pg1');\n    const pg2 = document.getElementById('pg2');\n    const status = document.getElementById('status');\n\n    pg1.addEventListener('mouseover', () =\u003e {\n      status.textContent = 'Mouse over pg1';\n    });\n\n    pg1.addEventListener('mouseout', () =\u003e {\n      status.textContent = 'Mouse not over any graphics';\n    });\n\n    pg2.addEventListener('mouseover', () =\u003e {\n      status.textContent = 'Mouse over pg2';\n    });\n\n    pg2.addEventListener('mouseout', () =\u003e {\n      status.textContent = 'Mouse not over any graphics';\n    });\n  \u003c/script\u003e\n\u003c/body\u003e\n\u003c/html\u003e\n```\n\nIn this example:\n- Two `div` elements with IDs `pg1` and `pg2` represent the graphics objects.\n- The `mouseover` event listener changes the text content of the `status` paragraph to indicate which element the mouse is over.\n- The `mouseout` event listener resets the text content of the `status` paragraph when the mouse leaves the element.",
+          "isTrusted": {
+            "enabledCommands": [
+              "_github.copilot.openRelativePath",
+              "_github.copilot.openSymbolInFile",
+              "_github.copilot.openSymbolFromReferences"
+            ]
+          },
+          "supportThemeIcons": false,
+          "supportHtml": false
+        }
+      ],
+      "result": {
+        "metadata": {},
+        "timings": {
+          "firstProgress": 832,
+          "totalElapsed": 5109
+        }
+      }
+    }
+  ]
+}

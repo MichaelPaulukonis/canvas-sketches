@@ -1,0 +1,113 @@
+{
+  "host": "",
+  "sessionId": "17eb013e-525a-409a-9f0a-24e5b563afd9",
+  "customTitle": "Reformatting code to follow JavaScript Standard Style",
+  "version": 3,
+  "requesterUsername": "MichaelPaulukonis",
+  "responderUsername": "GitHub Copilot",
+  "creationDate": 1734811459763,
+  "lastMessageDate": 1734811553493,
+  "initialLocation": "panel",
+  "isImported": false,
+  "requests": [
+    {
+      "requestId": "",
+      "timestamp": 0,
+      "message": {
+        "text": "Can you use Javascript Standard style?",
+        "parts": [
+          {
+            "kind": "text"
+          }
+        ]
+      },
+      "response": [
+        {
+          "value": "Sure, I'll reformat the provided code to follow JavaScript Standard Style.\n\n```javascript\nlet index = (x + y * scaledWidth * p.pixelDensity()) * 4\nlet r = buffer.pixels[index]\nlet g = buffer.pixels[index + 1]\nlet b = buffer.pixels[index + 2]\nlet a = buffer.pixels[index + 3]\nlet avg = (r + g + b) / 3\nlet bw = avg \u003e threshold ? 255 : 0\n\nif (a === 0 || bw === 255) {\n  // Transparent pixel or white, set to background color\n  buffer.pixels[index] = p.red(backgroundColor)\n  buffer.pixels[index + 1] = p.green(backgroundColor)\n  buffer.pixels[index + 2] = p.blue(backgroundColor)\n} else {\n  buffer.pixels[index] = p.red(monoColor)\n  buffer.pixels[index + 1] = p.green(monoColor)\n  buffer.pixels[index + 2] = p.blue(monoColor)\n}\nbuffer.pixels[index + 3] = 255 // Set alpha to fully opaque\n\nbuffer.updatePixels()\nreturn buffer\n}\n\np.calculateScaleRatio = function (img) {\n  const maxCanvasSize = Math.min(p.width, p.height) * 0.8\n  const maxImgSize = Math.max(img.width, img.height)\n  return maxCanvasSize / maxImgSize\n}\n\nnew p5(sketch)\n```",
+          "isTrusted": {
+            "enabledCommands": [
+              "_github.copilot.openRelativePath",
+              "_github.copilot.openSymbolInFile",
+              "_github.copilot.openSymbolFromReferences"
+            ]
+          },
+          "supportThemeIcons": false,
+          "supportHtml": false
+        }
+      ],
+      "result": {
+        "metadata": {},
+        "timings": {
+          "firstProgress": 1061,
+          "totalElapsed": 3696
+        }
+      }
+    },
+    {
+      "requestId": "",
+      "timestamp": 0,
+      "message": {
+        "text": "From now on, always use JavaScript Standard Style, unles otherwise instructed.",
+        "parts": [
+          {
+            "kind": "text"
+          }
+        ]
+      },
+      "response": [
+        {
+          "value": "Understood. Here is the provided code reformatted to follow JavaScript Standard Style:\n\n```javascript\nlet index = (x + y * scaledWidth * p.pixelDensity()) * 4\nlet r = buffer.pixels[index]\nlet g = buffer.pixels[index + 1]\nlet b = buffer.pixels[index + 2]\nlet a = buffer.pixels[index + 3]\nlet avg = (r + g + b) / 3\nlet bw = avg \u003e threshold ? 255 : 0\n\nif (a === 0 || bw === 255) {\n  // Transparent pixel or white, set to background color\n  buffer.pixels[index] = p.red(backgroundColor)\n  buffer.pixels[index + 1] = p.green(backgroundColor)\n  buffer.pixels[index + 2] = p.blue(backgroundColor)\n} else {\n  buffer.pixels[index] = p.red(monoColor)\n  buffer.pixels[index + 1] = p.green(monoColor)\n  buffer.pixels[index + 2] = p.blue(monoColor)\n}\nbuffer.pixels[index + 3] = 255 // Set alpha to fully opaque\n\nbuffer.updatePixels()\nreturn buffer\n}\n\np.calculateScaleRatio = function (img) {\n  const maxCanvasSize = Math.min(p.width, p.height) * 0.8\n  const maxImgSize = Math.max(img.width, img.height)\n  return maxCanvasSize / maxImgSize\n}\n\nnew p5(sketch)\n```",
+          "isTrusted": {
+            "enabledCommands": [
+              "_github.copilot.openRelativePath",
+              "_github.copilot.openSymbolInFile",
+              "_github.copilot.openSymbolFromReferences"
+            ]
+          },
+          "supportThemeIcons": false,
+          "supportHtml": false
+        }
+      ],
+      "result": {
+        "metadata": {},
+        "timings": {
+          "firstProgress": 750,
+          "totalElapsed": 3333
+        }
+      }
+    },
+    {
+      "requestId": "",
+      "timestamp": 0,
+      "message": {
+        "text": "Can you edit in-place?",
+        "parts": [
+          {
+            "kind": "text"
+          }
+        ]
+      },
+      "response": [
+        {
+          "value": "Sure, here is the code reformatted to follow JavaScript Standard Style:\n\n```javascript\nlet index = (x + y * scaledWidth * p.pixelDensity()) * 4\nlet r = buffer.pixels[index]\nlet g = buffer.pixels[index + 1]\nlet b = buffer.pixels[index + 2]\nlet a = buffer.pixels[index + 3]\nlet avg = (r + g + b) / 3\nlet bw = avg \u003e threshold ? 255 : 0\n\nif (a === 0 || bw === 255) {\n  // Transparent pixel or white, set to background color\n  buffer.pixels[index] = p.red(backgroundColor)\n  buffer.pixels[index + 1] = p.green(backgroundColor)\n  buffer.pixels[index + 2] = p.blue(backgroundColor)\n} else {\n  buffer.pixels[index] = p.red(monoColor)\n  buffer.pixels[index + 1] = p.green(monoColor)\n  buffer.pixels[index + 2] = p.blue(monoColor)\n}\nbuffer.pixels[index + 3] = 255 // Set alpha to fully opaque\n}\n}\nbuffer.updatePixels()\nreturn buffer\n}\n\np.calculateScaleRatio = function (img) {\n  const maxCanvasSize = Math.min(p.width, p.height) * 0.8\n  const maxImgSize = Math.max(img.width, img.height)\n  return maxCanvasSize / maxImgSize\n}\n\nnew p5(sketch)\n```",
+          "isTrusted": {
+            "enabledCommands": [
+              "_github.copilot.openRelativePath",
+              "_github.copilot.openSymbolInFile",
+              "_github.copilot.openSymbolFromReferences"
+            ]
+          },
+          "supportThemeIcons": false,
+          "supportHtml": false
+        }
+      ],
+      "result": {
+        "metadata": {},
+        "timings": {
+          "firstProgress": 767,
+          "totalElapsed": 7993
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,90 @@
+{
+  "schemaVersion": "1.0",
+  "provider": {
+    "id": "copilotide",
+    "name": "copilotide",
+    "version": "1.0"
+  },
+  "sessionId": "17eb013e-525a-409a-9f0a-24e5b563afd9",
+  "createdAt": "2024-12-21T15:04:19-05:00",
+  "updatedAt": "2024-12-21T15:05:53-05:00",
+  "slug": "reformatting-code-to-follow-javascript-standard-style",
+  "workspaceRoot": "/Users/michaelpaulukonis/projects/my-sketches",
+  "exchanges": [
+    {
+      "exchangeId": "",
+      "startTime": "1969-12-31T19:00:00-05:00",
+      "messages": [
+        {
+          "timestamp": "1969-12-31T19:00:00-05:00",
+          "role": "user",
+          "content": [
+            {
+              "type": "text",
+              "text": "Can you use Javascript Standard style?"
+            }
+          ]
+        },
+        {
+          "role": "agent",
+          "content": [
+            {
+              "type": "text",
+              "text": "Sure, I'll reformat the provided code to follow JavaScript Standard Style.\n\n```javascript\nlet index = (x + y * scaledWidth * p.pixelDensity()) * 4\nlet r = buffer.pixels[index]\nlet g = buffer.pixels[index + 1]\nlet b = buffer.pixels[index + 2]\nlet a = buffer.pixels[index + 3]\nlet avg = (r + g + b) / 3\nlet bw = avg \u003e threshold ? 255 : 0\n\nif (a === 0 || bw === 255) {\n  // Transparent pixel or white, set to background color\n  buffer.pixels[index] = p.red(backgroundColor)\n  buffer.pixels[index + 1] = p.green(backgroundColor)\n  buffer.pixels[index + 2] = p.blue(backgroundColor)\n} else {\n  buffer.pixels[index] = p.red(monoColor)\n  buffer.pixels[index + 1] = p.green(monoColor)\n  buffer.pixels[index + 2] = p.blue(monoColor)\n}\nbuffer.pixels[index + 3] = 255 // Set alpha to fully opaque\n\nbuffer.updatePixels()\nreturn buffer\n}\n\np.calculateScaleRatio = function (img) {\n  const maxCanvasSize = Math.min(p.width, p.height) * 0.8\n  const maxImgSize = Math.max(img.width, img.height)\n  return maxCanvasSize / maxImgSize\n}\n\nnew p5(sketch)\n```"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "exchangeId": "",
+      "startTime": "1969-12-31T19:00:00-05:00",
+      "messages": [
+        {
+          "timestamp": "1969-12-31T19:00:00-05:00",
+          "role": "user",
+          "content": [
+            {
+              "type": "text",
+              "text": "From now on, always use JavaScript Standard Style, unles otherwise instructed."
+            }
+          ]
+        },
+        {
+          "role": "agent",
+          "content": [
+            {
+              "type": "text",
+              "text": "Understood. Here is the provided code reformatted to follow JavaScript Standard Style:\n\n```javascript\nlet index = (x + y * scaledWidth * p.pixelDensity()) * 4\nlet r = buffer.pixels[index]\nlet g = buffer.pixels[index + 1]\nlet b = buffer.pixels[index + 2]\nlet a = buffer.pixels[index + 3]\nlet avg = (r + g + b) / 3\nlet bw = avg \u003e threshold ? 255 : 0\n\nif (a === 0 || bw === 255) {\n  // Transparent pixel or white, set to background color\n  buffer.pixels[index] = p.red(backgroundColor)\n  buffer.pixels[index + 1] = p.green(backgroundColor)\n  buffer.pixels[index + 2] = p.blue(backgroundColor)\n} else {\n  buffer.pixels[index] = p.red(monoColor)\n  buffer.pixels[index + 1] = p.green(monoColor)\n  buffer.pixels[index + 2] = p.blue(monoColor)\n}\nbuffer.pixels[index + 3] = 255 // Set alpha to fully opaque\n\nbuffer.updatePixels()\nreturn buffer\n}\n\np.calculateScaleRatio = function (img) {\n  const maxCanvasSize = Math.min(p.width, p.height) * 0.8\n  const maxImgSize = Math.max(img.width, img.height)\n  return maxCanvasSize / maxImgSize\n}\n\nnew p5(sketch)\n```"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "exchangeId": "",
+      "startTime": "1969-12-31T19:00:00-05:00",
+      "messages": [
+        {
+          "timestamp": "1969-12-31T19:00:00-05:00",
+          "role": "user",
+          "content": [
+            {
+              "type": "text",
+              "text": "Can you edit in-place?"
+            }
+          ]
+        },
+        {
+          "role": "agent",
+          "content": [
+            {
+              "type": "text",
+              "text": "Sure, here is the code reformatted to follow JavaScript Standard Style:\n\n```javascript\nlet index = (x + y * scaledWidth * p.pixelDensity()) * 4\nlet r = buffer.pixels[index]\nlet g = buffer.pixels[index + 1]\nlet b = buffer.pixels[index + 2]\nlet a = buffer.pixels[index + 3]\nlet avg = (r + g + b) / 3\nlet bw = avg \u003e threshold ? 255 : 0\n\nif (a === 0 || bw === 255) {\n  // Transparent pixel or white, set to background color\n  buffer.pixels[index] = p.red(backgroundColor)\n  buffer.pixels[index + 1] = p.green(backgroundColor)\n  buffer.pixels[index + 2] = p.blue(backgroundColor)\n} else {\n  buffer.pixels[index] = p.red(monoColor)\n  buffer.pixels[index + 1] = p.green(monoColor)\n  buffer.pixels[index + 2] = p.blue(monoColor)\n}\nbuffer.pixels[index + 3] = 255 // Set alpha to fully opaque\n}\n}\nbuffer.updatePixels()\nreturn buffer\n}\n\np.calculateScaleRatio = function (img) {\n  const maxCanvasSize = Math.min(p.width, p.height) * 0.8\n  const maxImgSize = Math.max(img.width, img.height)\n  return maxCanvasSize / maxImgSize\n}\n\nnew p5(sketch)\n```"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
